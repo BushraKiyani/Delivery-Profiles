@@ -126,7 +126,7 @@ def check_adressenliste_dublicate(df):
 
 def adjust_streetnames_in_PLZ(df,df_Levenshteindistance):
     for index, row in df_Levenshteindistance.iterrows():
-        if row["Anzahl_Sendungen_0"]>= row["Anzahl_Sendungen_1"]:
+        if row["Anzahl_Sendungen_0"] >= row["Anzahl_Sendungen_1"]:
             df.loc[(df["PLZ_Empfänger"] == row["PLZ_Empfänger"])& (df["Straße_Empfänger"]== row["Straße_Empfänger_0"]),"Straße_Empfänger"] = row["Straße_Empfänger_0"]
         if row["Anzahl_Sendungen_0"]< row["Anzahl_Sendungen_1"]:
             df.loc[(df["PLZ_Empfänger"] == row["PLZ_Empfänger"]) & (df["Straße_Empfänger"] == row["Straße_Empfänger_1"]), "Straße_Empfänger"] = row["Straße_Empfänger_1"]
@@ -273,20 +273,21 @@ if __name__ == "__main__":
     df_rohdaten = change_streetnames_by_hand(df_rohdaten)
     df_rohdaten["Straße_Empfänger"] = df_rohdaten["Straße_Empfänger"].str.upper()
 
+    # Dressenliste ersten mit neuen IDs pro Lieferort
     adressenliste = df_rohdaten[["Straße_Empfänger","PLZ_Empfänger", "Stadt_Empfänger"]].drop_duplicates(keep= "last",subset=["Straße_Empfänger","PLZ_Empfänger"]).reset_index(drop=True)
     adressenliste.index = adressenliste.index +1
     adressenliste = adressenliste.reset_index().rename(columns= {"index":"ID_Empfänger"})
 
+    # Neue ID zuordnen
     df_rohdaten = change_ID_Empfänger(adressenliste, df_rohdaten)
 
     adressenliste = add_Empfänger_Namen(adressenliste, df_rohdaten)
-    adressenliste = add_Empfänger_Namen(adressenliste,df_rohdaten)
-
 
     adressenliste["Anzahl_ID_Empfänger"] = df_rohdaten.groupby("ID_Empfänger").agg("count")["Transport"].values
     adressenliste.to_csv(path_or_buf=r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Adressenliste.csv",
                     sep=";", encoding="latin1", decimal=".")
 
+    # Gleiche IDs zusammenführen
     df_Levenshteindistance = check_adressenliste_dublicate(adressenliste)
     df_Levenshteindistance.to_csv(
         path_or_buf=r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Adressenliste_Levenshteindistance.csv",
@@ -294,6 +295,7 @@ if __name__ == "__main__":
 
     df_rohdaten = adjust_streetnames_in_PLZ(df_rohdaten,df_Levenshteindistance)
 
+    # ID Liste erstellen
     ID_liste = df_rohdaten[["Straße_Empfänger","PLZ_Empfänger", "Stadt_Empfänger"]].drop_duplicates(keep= "last",subset=["Straße_Empfänger","PLZ_Empfänger"]).reset_index(drop=True)
     ID_liste.index = ID_liste.index +1
     ID_liste = ID_liste.reset_index().rename(columns= {"index":"ID_Empfänger"})
@@ -306,14 +308,14 @@ if __name__ == "__main__":
     ID_liste = pd.read_csv(r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\ID_liste_no_split.csv",
                                   encoding="latin_1", sep=";", dtype={"lat": float, "lon": float})
 
-    df_rohdaten = add_coordinates(df_rohdaten,ID_liste)
+    df_rohdaten = add_coordinates(df_rohdaten,ID_liste) # Koordinaten hinzufügen
 
     df_rohdaten = calc_period(df_rohdaten) #Periode hinzufügen
     df_rohdaten["ID_Sendung"] = df_rohdaten.index #ID_Sendung hinzufügen
 
     ID_liste = ID_liste.reset_index()
-    df_rohdaten = split_IDs(df_rohdaten)
-    df_rohdaten = change_Kategorisierung(ID_liste, df_rohdaten)
+    df_rohdaten = split_IDs(df_rohdaten) # neue IDs Übertragen
+    df_rohdaten = change_Kategorisierung(ID_liste, df_rohdaten) # häufigste Kategorisierung für Kunden übernehmen
 
     ID_liste = df_rohdaten[["ID_Empfänger", "Kategorisierung","Straße_Empfänger","PLZ_Empfänger", "Stadt_Empfänger", "empfaenger_lon", "empfaenger_lat"]].drop_duplicates(keep= "last",subset=["ID_Empfänger","Straße_Empfänger","PLZ_Empfänger"]).reset_index(drop=True)
     ID_liste = ID_liste.rename(columns= {"empfaenger_lon": "lon","empfaenger_lat":"lat"})
@@ -325,6 +327,3 @@ if __name__ == "__main__":
 
     df_rohdaten.to_csv(path_or_buf=r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Datensatz_TK_bereinigt.csv",
                        sep=";", encoding="latin1", decimal=".")
-
-
-
