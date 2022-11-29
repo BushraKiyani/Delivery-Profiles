@@ -153,7 +153,7 @@ def create_matrix_real(df_coordinates_list):
             koordinaten_gesamt.extend(koordinaten_destination_array)
             koordinaten_gesamt.extend(koordinaten_start_array)
 
-            # Daten abrufen
+            # Ausgangsdaten abrufen
             distance_matrix_part_values, duration_matrix_part_values = get_distance_duration(koordinaten_gesamt)
 
 
