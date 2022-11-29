@@ -1,7 +1,7 @@
 import pandas as pd
 
-def transform_tarifmatrix(df_tarifmatrix_wide_path):
-    df_tarifmatrix_wide = pd.read_csv(df_tarifmatrix_wide_path, encoding="latin_1", sep=";", decimal=".", dtype= float)
+def transform_tarifmatrix(df_tarifmatrix_wide):
+
     df_tarif_matrix_melted = pd.melt(df_tarifmatrix_wide, id_vars="Gewicht", value_vars=df_tarifmatrix_wide.columns[1:],
                                      var_name="Distanz", value_name="Kosten")
     df_tarif_matrix_melted = df_tarif_matrix_melted.astype("float")
@@ -20,9 +20,8 @@ def assign_costs(df_tarifmatrix_long, df_touren):
 
 if __name__ == "__main__":
     df_touren = pd.read_csv(r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Datensatz_TK_erweitert.csv", encoding="latin_1", sep=";", decimal=".")
-    df_tarifmatrix_wide = pd.read_csv(r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Transportpreismatrix_TK.csv", encoding="latin_1", sep=";", decimal=".")
-    df_tarifmatrix_wide_path = r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Transportpreismatrix_TK.csv"
-    df_tarifmatrix_long = transform_tarifmatrix(df_tarifmatrix_wide_path)
+    df_tarifmatrix_wide = pd.read_csv(r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Transportpreismatrix_TK.csv", encoding="latin_1", sep=";", decimal=".", dtype= float)
+    df_tarifmatrix_long = transform_tarifmatrix(df_tarifmatrix_wide)
     df_touren = assign_costs(df_tarifmatrix_long, df_touren)
 
     print(df_touren["Frachtkosten"])

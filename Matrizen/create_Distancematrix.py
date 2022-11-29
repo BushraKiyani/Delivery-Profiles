@@ -226,20 +226,18 @@ if __name__ == "__main__":
     df_coordinates_list = pd.read_csv(
         r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\ID_liste.csv",
         encoding="latin-1", sep=";", dtype={"ID_Empfänger":object, "lat": float,"lon": float})
+
     df_coordinates_list = df_coordinates_list[["ID_Empfänger", "lat", "lon"]]
     df_versandzentrum = {"ID_Empfänger":"Rotenburg (Wümme)","lat":53.12433928160658,"lon":9.337199734018563}
     df_coordinates_list = df_coordinates_list.append(df_versandzentrum, ignore_index= True)
-    print(df_coordinates_list.dtypes)
-    print(df_coordinates_list.tail())
-    print(df_coordinates_list.head())
 
-    #dist_matrix_eukl = create_matrix_eukl(df_coordinates_list)
-    #dist_matrix_eukl.to_csv(path_or_buf=r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\distance_matrix_eukl.csv", index=True, sep=";",encoding="latin1",decimal=".")
+    dist_matrix_eukl = create_matrix_eukl(df_coordinates_list)
+    dist_matrix_eukl.to_csv(path_or_buf=r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\distance_matrix_eukl.csv", index=True, sep=";",encoding="latin1",decimal=".")
 
 
-    dist_matrix_real, dur_matrix_real = create_matrix_real(df_coordinates_list)
-    dur_matrix_real.to_csv(path_or_buf=r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\duration_matrix_real_TK.csv", index=True, sep=";", encoding="latin1",decimal=".")
-    dist_matrix_real.to_csv(path_or_buf=r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\distance_matrix_real_TK.csv", index=True, sep=";", encoding="latin1",decimal=".")
+    #dist_matrix_real, dur_matrix_real = create_matrix_real(df_coordinates_list)
+    #dur_matrix_real.to_csv(path_or_buf=r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\duration_matrix_real_TK.csv", index=True, sep=";", encoding="latin1",decimal=".")
+    #dist_matrix_real.to_csv(path_or_buf=r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\distance_matrix_real_TK.csv", index=True, sep=";", encoding="latin1",decimal=".")
     #print("matrix_real")
     #print(dist_matrix_real)
     #print(dur_matrix_real)

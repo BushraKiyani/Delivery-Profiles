@@ -59,8 +59,6 @@ def correct_streetnames(df):
             i = i.replace("STR ", "STRASSE ")
         i = i.replace("  ", " ")
 
-
-
         street_array.append(i)
     #print(street_array)
     df["Straße_Empfänger"] = street_array
@@ -250,7 +248,7 @@ def calc_period(df_touren):
     return df_touren
 
 if __name__ == "__main__":
-    df_rohdaten = pd.read_csv(r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Grunddaten\Rohdaten_TK.csv", encoding="latin-1", sep=";", dtype={"Empf. Plz": object, "Empf. Straße": object})
+    df_rohdaten = pd.read_csv(r"Resources\Grunddaten\Rohdaten_TK.csv", encoding="latin-1", sep=";", dtype={"Empf. Plz": object, "Empf. Straße": object})
 
     df_rohdaten["Kundenkategorie"] = df_rohdaten["Kundenkategorie"].str.upper()
     df_rohdaten["Empf. Straße"] = df_rohdaten["Empf. Straße"].str.upper()
@@ -314,7 +312,7 @@ if __name__ == "__main__":
     df_rohdaten["ID_Sendung"] = df_rohdaten.index #ID_Sendung hinzufügen
 
     ID_liste = ID_liste.reset_index()
-    df_rohdaten = split_IDs(df_rohdaten) # neue IDs Übertragen
+    #df_rohdaten = split_IDs(df_rohdaten) # neue IDs Übertragen
     df_rohdaten = change_Kategorisierung(ID_liste, df_rohdaten) # häufigste Kategorisierung für Kunden übernehmen
 
     ID_liste = df_rohdaten[["ID_Empfänger", "Kategorisierung","Straße_Empfänger","PLZ_Empfänger", "Stadt_Empfänger", "empfaenger_lon", "empfaenger_lat"]].drop_duplicates(keep= "last",subset=["ID_Empfänger","Straße_Empfänger","PLZ_Empfänger"]).reset_index(drop=True)
