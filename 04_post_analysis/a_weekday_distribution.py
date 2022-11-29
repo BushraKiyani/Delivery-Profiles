@@ -232,12 +232,12 @@ if __name__ == '__main__':
     df_touren["Wochentag"] = df_touren["Beladedatum"].dt.dayofweek
     df_touren["Monat"] = df_touren["Beladedatum"].dt.month
 
-    df_touren = df_touren[["ID_Empfänger","Beladedatum", "Kalenderwoche","Wochentag", "Monat", "Gewicht", "Frachtkosten", "Kategorisierung"]]
+    df_touren = df_touren[["ID_Empfänger","Beladedatum", "Kalenderwoche","Wochentag", "Monat", "Gewicht", "Frachtkosten"]]
     #print(df_touren)
 
-    df_pattern_133 = pd.read_csv(f"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_['ZZZ', 'GRAU', 'BLAU', 'GELB', 'GRÜN']var_gewicht{max_var_gewicht}_var_frequenz{max_var_frequenz}_mindest_frequenz{min_frequenz}.csv",
+    df_pattern_133 = pd.read_csv(f"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_var_gewicht{max_var_gewicht}_var_frequenz{max_var_frequenz}_mindest_frequenz{min_frequenz}.csv",
                                       encoding="latin_1", sep=";")
-    df_pattern_133_only = pd.read_csv(f"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_only['ZZZ', 'GRAU', 'BLAU', 'GELB', 'GRÜN']var_gewicht{max_var_gewicht}_var_frequenz{max_var_frequenz}_mindest_frequenz{min_frequenz}.csv",
+    df_pattern_133_only = pd.read_csv(f"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_only_var_gewicht{max_var_gewicht}_var_frequenz{max_var_frequenz}_mindest_frequenz{min_frequenz}.csv",
                                       encoding="latin_1", sep=";")
 
     creatDiagrammGewichtWeekdays(df_touren, df_pattern=df_pattern_133)

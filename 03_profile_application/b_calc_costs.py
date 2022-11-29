@@ -79,7 +79,7 @@ def calc_avg_delay(df_send, shippingdate):
 
     return sum_delay/num_send
 
-def profilanwendung(speicherpfad_speziell,kat_filter):
+def profilanwendung(speicherpfad_speziell):
     send_id_list =[]
 
     df_profile = pd.read_csv(
@@ -97,18 +97,6 @@ def profilanwendung(speicherpfad_speziell,kat_filter):
     #print(send_list)
     gesamtgewicht = df_sendungen["Gewicht"].sum()
 
-    #Kategorie hinzufügen
-    kat_array = []
-    for index, row in df_profile.iterrows():
-        kat_array.append(df_sendungen.loc[row["ID_Empfänger"],"Kategorisierung"].mode()[0])
-        #print(df_sendungen.loc[row["ID_Empfänger"],"Kategorisierung"].mode()[0])
-    df_profile["Kategorisierung"] = kat_array
-
-    #filter Kategorie
-    df_profile = df_profile[df_profile["Kategorisierung"].isin(kat_filter)]
-
-    if df_profile[df_profile["Kategorisierung"].isin(kat_filter)].empty == True:
-        return df_sendungen["Frachtkosten"].sum()
 
     df_sendungen["Beladedatum"] = pd.to_datetime(df_sendungen["Beladedatum"], dayfirst=True)
     df_sendungen["Wochentag"] = df_sendungen["Beladedatum"].dt.dayofweek
@@ -226,7 +214,7 @@ def profilanwendung(speicherpfad_speziell,kat_filter):
     df_result_pattern["Frachtkosten"] = df_result_pattern.apply(lambda row_l: frachtkosten_berechnen(df_tarifmatrix_long, row_l["Gewicht"], row_l["Distanz"]),axis=1)
 
     df_result_pattern.to_csv(
-        path_or_buf=r"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_only" + speicherpfad_speziell + ".csv",
+        path_or_buf=r"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_only_" + speicherpfad_speziell + ".csv",
         encoding="latin_1", sep=";", decimal=".")
 
     df_result = pd.concat([df_result_pattern, df_sendungen_not_filter], ignore_index=True)
@@ -244,5 +232,4 @@ def profilanwendung(speicherpfad_speziell,kat_filter):
 
 if __name__ == '__main__':
     speicherpfad_speziell= "['ZZZ', 'GRAU', 'BLAU', 'GELB', 'GRÜN']var_gewicht1.33_var_frequenz1.33_mindest_frequenz1"
-    kat_filter = ['ZZZ', 'GRAU', 'BLAU', 'GELB', 'GRÜN']
-    frachtkosten = profilanwendung(speicherpfad_speziell, kat_filter)
+    frachtkosten = profilanwendung(speicherpfad_speziell)

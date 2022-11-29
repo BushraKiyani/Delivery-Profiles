@@ -6,14 +6,14 @@ import time
 
 solver = pywraplp.Solver.CreateSolver('SCIP')
 
-def data(speicherpfad_base, speicherpfad_speziell, var_gewicht = 100, var_frequenz = 100, mindest_frequenz = 1, kat_filter =["ZZZ", "GRAU", "GELB", "GRÜN", "BLAU"]):
+def data(speicherpfad_base, speicherpfad_speziell, var_gewicht = 100, var_frequenz = 100, mindest_frequenz = 1):
     data = pd.read_csv(
         r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variablitätsauswertung.csv",
         encoding="latin-1",
         sep=";")
 
     #filter
-    data = data.loc[(data["variability_Gewicht"]<= var_gewicht) & (data["variability_Frequenz"]<= var_frequenz) & (data["avg_Frequenz"]>= mindest_frequenz) & (data["Kategorisierung"].isin(kat_filter))]
+    data = data.loc[(data["variability_Gewicht"]<= var_gewicht) & (data["variability_Frequenz"]<= var_frequenz) & (data["avg_Frequenz"]>= mindest_frequenz) ]
     print(data.head())
 
     frequenz_avg_array = []
@@ -155,11 +155,11 @@ def save_ergebnisse(PAT,days,C, q, f, bigM, s,x, speicherpfad_base, speicherpfad
 
     return df_ergebnisse
 
-def patternzuordnung(var_gewicht, var_frequenz, mindest_frequenz, speicherpfad_speziell, kat_filter):
+def patternzuordnung(var_gewicht, var_frequenz, mindest_frequenz, speicherpfad_speziell):
 
     speicherpfad_base = r"../00_Resources/profile_results"
 
-    df_parameter = data(speicherpfad_base, speicherpfad_speziell, var_gewicht, var_frequenz, mindest_frequenz, kat_filter) # Gerundete avg. Frequenz und Gewicht ergänzen
+    df_parameter = data(speicherpfad_base, speicherpfad_speziell, var_gewicht, var_frequenz, mindest_frequenz) # Gerundete avg. Frequenz und Gewicht ergänzen
 
     PAT, days, C, q, f, bigM = parameter(df_parameter["ID_Empfänger"].values, df_parameter["Nachfrage"].values,
                                          df_parameter["Frequenz"].values)
@@ -184,35 +184,29 @@ if __name__ == '__main__':
     var_gewicht = 1.33
     var_frequenz = 1.33
     mindest_frequenz = 1
-    kat_arrays = [
-                ["ZZZ", "GRAU", "BLAU","GELB","GRÜN"],
-                  ]
+
 
     einsparungs_array = []
     solvingtime_array = []
-    for kat in kat_arrays:
-        print(kat)
-        kat_filter = kat
 
-        speicherpfad_speziell = str(kat_filter) + "var_gewicht" + str(var_gewicht) + "_var_frequenz" + str(
+    speicherpfad_speziell =  "var_gewicht" + str(var_gewicht) + "_var_frequenz" + str(
             var_frequenz) + "_mindest_frequenz" + str(mindest_frequenz)
 
 
-        df_pattern = patternzuordnung(var_gewicht, var_frequenz, mindest_frequenz, speicherpfad_speziell, kat_filter)
-        print("---PATTTERNZUORDNUNG ERFOLGT---")
+    df_pattern = patternzuordnung(var_gewicht, var_frequenz, mindest_frequenz, speicherpfad_speziell)
+    print("---PATTTERNZUORDNUNG ERFOLGT---")
 
-        df_touren = pd.read_csv(
+    df_touren = pd.read_csv(
             r"../00_Resources/Grunddaten/Datensatz_TK_fertig.csv",
             encoding="latin_1", sep=";")
-        frachtkosten_vorher = df_touren["Frachtkosten"].sum()
+    frachtkosten_vorher = df_touren["Frachtkosten"].sum()
 
-        frachtkosten_nachher = profilanwendung(speicherpfad_speziell, kat_filter=kat_filter)
-        print("---PATTERN ANGEWENDET---")
+    frachtkosten_nachher = profilanwendung(speicherpfad_speziell)
+    print("---PATTERN ANGEWENDET---")
 
-        print(str(round(((frachtkosten_vorher - frachtkosten_nachher) / frachtkosten_vorher)*100,2))+"%")
-        einsparungs_array.append(str(round(((frachtkosten_vorher - frachtkosten_nachher) / frachtkosten_vorher)*100,2))+"%")
-        solvingtime_array.append(solver.wall_time())
+    print(str(round(((frachtkosten_vorher - frachtkosten_nachher) / frachtkosten_vorher)*100,2))+"%")
+    einsparungs_array.append(str(round(((frachtkosten_vorher - frachtkosten_nachher) / frachtkosten_vorher)*100,2))+"%")
+    solvingtime_array.append(solver.wall_time())
 
-    df_ergebnisse = pd.DataFrame(data={"Kategorien":kat_arrays,
-                                       "Einsparung":einsparungs_array,
+    df_ergebnisse = pd.DataFrame(data={"Einsparung":einsparungs_array,
                                        "Lösungszeit": solvingtime_array})

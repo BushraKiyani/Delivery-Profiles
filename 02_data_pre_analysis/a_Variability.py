@@ -51,17 +51,14 @@ def variabilitätsauswertung(df_frequenz, df_gewicht):
     kosten_array = []
     sendungen_array = []
     gewicht_array = []
-    kategorie_array = []
     for index, row in df_auswertung.iterrows():
         kosten_array.append(df_touren_all[df_touren_all["ID_Empfänger"] == index]["Frachtkosten"].sum())
         sendungen_array.append(df_touren_all[df_touren_all["ID_Empfänger"] == index]["Frachtkosten"].count())
         gewicht_array.append(df_touren_all[df_touren_all["ID_Empfänger"] == index]["Gewicht"].sum())
-        kategorie_array.append(df_touren_all[df_touren_all["ID_Empfänger"] == index]["Kategorisierung"].mode()[0])
 
     df_auswertung["Frachtkosten"] = kosten_array
     df_auswertung["Sendungen"] = sendungen_array
     df_auswertung["Gewicht"] = gewicht_array
-    df_auswertung["Kategorisierung"] = kategorie_array
 
     df_auswertung.to_csv(
         r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variablitätsauswertung.csv",

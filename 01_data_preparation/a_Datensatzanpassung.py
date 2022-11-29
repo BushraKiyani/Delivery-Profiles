@@ -15,7 +15,6 @@ def change_Columnname(df):
                              "Abs. Ort": "Stadt_Absender",
                              "Empf.-ID": "ID_Empfänger",
                              "Empf. Name": "Name_Empfänger",
-                             "Kundenkategorie": "Kategorisierung",
                              "Empf. Straße": "Straße_Empfänger",
                              "Empf. Lnd": "Land_Empfänger",
                              "Empf. Plz": "PLZ_Empfänger",
@@ -136,13 +135,6 @@ def change_ID_Empfänger(ID_liste, df):
     return df
 
 
-def change_Kategorisierung(ID_liste, df):
-    for index, row in df.iterrows():
-        try:
-            df.loc[(df.ID_Empfänger == row["ID_Empfänger"]), 'Kategorisierung'] = df[df["ID_Empfänger"]== row["ID_Empfänger"]]["alte_Kategorisierung"].mode()[0]
-        except IndexError:
-            print("nichts")
-    return df
 
 def split_IDs(df):
     ID_split_list = pd.read_csv(r"../00_Resources/Grunddaten/Grunddaten/ID_split_Namen.csv",
@@ -168,15 +160,6 @@ def add_Empfänger_Namen(ID_liste, df):
     ID_liste["Name_Empfänger"] = namen_array
     return ID_liste
 
-def add_Empfänger_Kategorie(ID_liste, df):
-    Kat_array =[]
-
-    for index, row in ID_liste.iterrows():
-        df_filtered = df.loc[(df["ID_Empfänger"] == row["ID_Empfänger"])]
-        Kat_array.append(df_filtered.mode()["Kategorisierung"][0])
-
-    ID_liste["Kategorisierung"] = Kat_array
-    return ID_liste
 
 
 def add_Koordinaten(raw_list):
@@ -250,12 +233,10 @@ def calc_period(df_touren):
 if __name__ == "__main__":
     df_rohdaten = pd.read_csv('../00_Resources/Grunddaten/Rohdaten_TK.csv', encoding="latin-1", sep=";", dtype={"Empf. Plz": object, "Empf. Straße": object})
 
-    df_rohdaten["Kundenkategorie"] = df_rohdaten["Kundenkategorie"].str.upper()
     df_rohdaten["Empf. Straße"] = df_rohdaten["Empf. Straße"].str.upper()
     df_rohdaten["Empf. Ort"] = df_rohdaten["Empf. Ort"].str.upper()
 
     df_rohdaten["alte_ID_Empfänger"] = df_rohdaten["Empf.-ID"]
-    df_rohdaten["alte_Kategorisierung"] = df_rohdaten["Kundenkategorie"]
     df_rohdaten["alte_Straße_Empfänger"] = df_rohdaten["Empf. Straße"]
 
     df_rohdaten = change_Columnname(df_rohdaten)
@@ -298,15 +279,13 @@ if __name__ == "__main__":
     ID_liste.index = ID_liste.index +1
     ID_liste = ID_liste.reset_index().rename(columns= {"index":"ID_Empfänger"})
     ID_liste = add_Empfänger_Namen(ID_liste,df_rohdaten)
-    ID_liste = add_Empfänger_Kategorie(ID_liste, df_rohdaten)
     ID_liste = add_Koordinaten(ID_liste)
     ID_liste = ID_liste.reset_index()
     #df_rohdaten = split_IDs(df_rohdaten) # neue IDs Übertragen
 
     df_rohdaten = add_coordinates(df_rohdaten, ID_liste) # Koordinaten hinzufügen
-    df_rohdaten = change_Kategorisierung(ID_liste, df_rohdaten) # häufigste Kategorisierung für Kunden übernehmen
 
-    #ID_liste = df_rohdaten[["ID_Empfänger","Name_Empfänger", "Kategorisierung","Straße_Empfänger","PLZ_Empfänger", "Stadt_Empfänger", "Kategorisierung", "empfaenger_lon", "empfaenger_lat"]].drop_duplicates(keep= "last",subset=["ID_Empfänger","Straße_Empfänger","PLZ_Empfänger"]).reset_index(drop=True)
+    #ID_liste = df_rohdaten[["ID_Empfänger","Name_Empfänger", "Straße_Empfänger","PLZ_Empfänger", "Stadt_Empfänger", "empfaenger_lon", "empfaenger_lat"]].drop_duplicates(keep= "last",subset=["ID_Empfänger","Straße_Empfänger","PLZ_Empfänger"]).reset_index(drop=True)
     ID_liste = ID_liste.rename(columns= {"empfaenger_lon": "lon","empfaenger_lat":"lat"})
 
     ID_liste.to_csv(path_or_buf=r"../00_Resources/Grunddaten/ID_liste.csv",
