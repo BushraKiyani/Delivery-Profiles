@@ -136,6 +136,7 @@ def save_ergebnisse(PAT,days,C, q, f, bigM, s,x, speicherpfad_base, speicherpfad
     dem_array = []
     freq_array = []
     pat_array = []
+    pat_clear = []
 
     for j in range(len(C)):
         for m in range(len(PAT[f[j]])):
@@ -144,11 +145,13 @@ def save_ergebnisse(PAT,days,C, q, f, bigM, s,x, speicherpfad_base, speicherpfad
                 dem_array.append(q[j])
                 freq_array.append(f[j])
                 pat_array.append([m][0])
+                pat_clear.append(PAT[f[j]][m])
 
     df_ergebnisse =  pd.DataFrame(data= {"ID_Empfänger": ID_array,
                                          "Frequenz": freq_array,
                                          "Nachfrage": dem_array,
                                          "Pattern" : pat_array,
+                                         "Pattern_clear" : pat_clear,
                                          })
     speicherpfad = speicherpfad_base + r'/Profilzuweisung/' + speicherpfad_speziell + ".csv"
     df_ergebnisse.to_csv(speicherpfad, encoding="latin-1", sep=";")
