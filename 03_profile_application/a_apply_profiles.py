@@ -3,6 +3,7 @@ import numpy
 import pandas as pd
 from b_calc_costs import *
 import time
+import math
 
 solver = pywraplp.Solver.CreateSolver('SCIP')
 
@@ -16,10 +17,17 @@ def data(speicherpfad_base, speicherpfad_speziell, var_gewicht = 100, var_freque
     data = data.loc[(data["variability_Gewicht"]<= var_gewicht) & (data["variability_Frequenz"]<= var_frequenz) & (data["avg_Frequenz"]>= mindest_frequenz) ]
     print(data.head())
 
+    def round_costum(value_x, border):
+        value_floor = math.floor(value_x)
+        if value_x - value_floor >= border:
+            return math.ceil(value_x)
+        else:
+            return  math.floor(value_x)
+
     frequenz_avg_array = []
     gewicht_avg_array = []
     for index, row in data.iterrows():
-        frequenz_avg_array.append(round(row["avg_Frequenz"]))
+        frequenz_avg_array.append(round_costum(row["avg_Frequenz"], 0.25))
         gewicht_avg_array.append(round(row["avg_Gewicht"] /row["avg_Frequenz"]))
 
     df_parameter = pd.DataFrame(data= {"ID_Empfänger": data["ID_Empfänger"],
@@ -192,7 +200,7 @@ if __name__ == '__main__':
     einsparungs_array = []
     solvingtime_array = []
 
-    speicherpfad_speziell =  "var_gewicht" + str(var_gewicht) + "_var_frequenz" + str(
+    speicherpfad_speziell = "var_gewicht" + str(var_gewicht) + "_var_frequenz" + str(
             var_frequenz) + "_mindest_frequenz" + str(mindest_frequenz)
 
 
