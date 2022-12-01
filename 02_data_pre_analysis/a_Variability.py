@@ -60,6 +60,8 @@ def variabilitätsauswertung(df_frequenz, df_gewicht):
     df_auswertung["Sendungen"] = sendungen_array
     df_auswertung["Gewicht"] = gewicht_array
 
+    df_auswertung["Profilkunde"] = True
+
     df_auswertung.to_csv(
         r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variablitätsauswertung.csv",
         encoding="latin_1", sep=";", index_label="ID_Empfänger")
@@ -195,6 +197,9 @@ def diagramm_3d_barplot(dz):
     #plt.show()
 
 if __name__ == '__main__':
+    state = "SL"
+    years = 2020
+
     df_touren_all = pd.read_csv(r"../00_Resources/Grunddaten/Datensatz_TK_fertig.csv",
                             encoding="latin_1", sep=";")
 
@@ -204,8 +209,9 @@ if __name__ == '__main__':
     df_touren_all["Beladedatum"] = pd.to_datetime(df_touren_all["Beladedatum"], dayfirst=True)
     df_touren_all["Kalenderwoche"] = df_touren_all["Beladedatum"].dt.week
 
-    for date in hd.DEU(state="SL", years=2020): #Wochen mit Feiertagen aussortieren
-        df_touren = df_touren_all[df_touren_all["Kalenderwoche"] != date.isocalendar()[1]]
+    if state == None or years == None:
+        for date in hd.DEU(state="SL", years=2020): #Wochen mit Feiertagen aussortieren
+            df_touren = df_touren_all[df_touren_all["Kalenderwoche"] != date.isocalendar()[1]]
 
     df_frequenz, df_gewicht = auswertung_nach_KW(df_touren) #Auswertung nach KWs erstellen
 
