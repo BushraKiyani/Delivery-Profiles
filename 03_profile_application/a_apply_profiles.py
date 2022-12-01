@@ -14,7 +14,7 @@ def data(speicherpfad_base, speicherpfad_speziell, var_gewicht = 100, var_freque
         sep=";")
 
     #filter
-    data = data.loc[(data["variability_Gewicht"]<= var_gewicht) & (data["variability_Frequenz"]<= var_frequenz) & (data["avg_Frequenz"]>= mindest_frequenz) ]
+    data = data.loc[(data["variability_Gewicht"]<= var_gewicht) & (data["variability_Frequenz"]<= var_frequenz) & (data["avg_Frequenz"]>= mindest_frequenz) & (data["Profilkunde"] == True) ]
     print(data.head())
 
     def round_costum(value_x, border):
