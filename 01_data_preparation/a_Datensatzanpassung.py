@@ -34,6 +34,14 @@ def change_streetnames_by_hand(df):
     return df
 
 def correct_streetnames(df):
+    df["Empf. Straße"] = df["Empf. Straße"].str.upper()
+    df["Empf. Ort"] = df["Empf. Ort"].str.upper()
+    df = df[df["Straße_Empfänger"] != "#"]
+    df = df[df["Straße_Empfänger"] != "32"]
+    df = df[df["Straße_Empfänger"] != 32]
+    df = df[df["Straße_Empfänger"] != "."]
+    df = df[df["Stadt_Empfänger"] != "."]
+
     street_array = []
     for i in df["Straße_Empfänger"]:
         hausnummerzusatz = ["A","B","C","D","E","F","G","H","a","b","c","d","e","f","g","h"]
@@ -233,22 +241,13 @@ def calc_period(df_touren):
 if __name__ == "__main__":
     df_rohdaten = pd.read_csv('../00_Resources/Grunddaten/Rohdaten_TK.csv', encoding="latin-1", sep=";", dtype={"Empf. Plz": object, "Empf. Straße": object})
 
-    df_rohdaten["Empf. Straße"] = df_rohdaten["Empf. Straße"].str.upper()
-    df_rohdaten["Empf. Ort"] = df_rohdaten["Empf. Ort"].str.upper()
-
-    df_rohdaten["alte_ID_Empfänger"] = df_rohdaten["Empf.-ID"]
-    df_rohdaten["alte_Straße_Empfänger"] = df_rohdaten["Empf. Straße"]
+    #df_rohdaten["alte_ID_Empfänger"] = df_rohdaten["Empf.-ID"]
+    #df_rohdaten["alte_Straße_Empfänger"] = df_rohdaten["Empf. Straße"]
 
     df_rohdaten = change_Columnname(df_rohdaten)
 
     df_rohdaten["ID_Sendung"] = df_rohdaten.index #ID_Sendung hinzufügen
     df_rohdaten = calc_period(df_rohdaten) #Periode hinzufügen
-
-    df_rohdaten = df_rohdaten[df_rohdaten["Straße_Empfänger"] != "#"]
-    df_rohdaten = df_rohdaten[df_rohdaten["Straße_Empfänger"] != "32"]
-    df_rohdaten = df_rohdaten[df_rohdaten["Straße_Empfänger"] != 32]
-    df_rohdaten = df_rohdaten[df_rohdaten["Straße_Empfänger"] != "."]
-    df_rohdaten = df_rohdaten[df_rohdaten["Stadt_Empfänger"] != "."]
 
     #Straßennamen korrigieren
     df_rohdaten = correct_streetnames(df_rohdaten)

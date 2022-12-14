@@ -61,10 +61,20 @@ def variabilitätsauswertung(df_frequenz, df_gewicht):
     df_auswertung["Gewicht"] = gewicht_array
 
     df_auswertung["Profilkunde"] = True
+    df_auswertung = df_auswertung.astype({'avg_Gewicht': 'float64',
+                          'avg_Frequenz': 'float64',
+                            'std_Gewicht': 'float64',
+                          'std_Frequenz': 'float64',
+                          'variability_Gewicht': 'float64',
+                          'variability_Frequenz': 'float64',
+                          })
 
     df_auswertung.to_csv(
         r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variablitätsauswertung.csv",
         encoding="latin_1", sep=";", index_label="ID_Empfänger")
+    df_auswertung.to_csv(
+        r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variablitätsauswertung_EU.csv",
+        encoding="latin_1", sep=";", index_label="ID_Empfänger", decimal=',')
 
     return df_auswertung
 
@@ -197,14 +207,17 @@ def diagramm_3d_barplot(dz):
     #plt.show()
 
 if __name__ == '__main__':
-    state = "SL"
-    years = 2020
+    state = None
+    years = None
 
     df_touren_all = pd.read_csv(r"../00_Resources/Grunddaten/Datensatz_TK_fertig.csv",
-                            encoding="latin_1", sep=";")
+                            encoding="latin_1", sep=";", decimal=','
+                                , dtype={'Gewicht': np.float64, "Distanz": np.float64, "Frachtkosten" : np.float64})
 
-    df_ID_list = pd.read_csv(r"../00_Resources/Grunddaten/ID_liste.csv",
-                            encoding="latin_1", sep=";")
+    print(df_touren_all.info())
+
+    #df_ID_list = pd.read_csv(r"../00_Resources/Grunddaten/ID_liste.csv",
+    #                        encoding="latin_1", sep=";")
 
     df_touren_all["Beladedatum"] = pd.to_datetime(df_touren_all["Beladedatum"], dayfirst=True)
     df_touren_all["Kalenderwoche"] = df_touren_all["Beladedatum"].dt.week
