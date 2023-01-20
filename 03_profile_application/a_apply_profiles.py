@@ -9,9 +9,11 @@ solver = pywraplp.Solver.CreateSolver('SCIP')
 
 def data(speicherpfad_base, speicherpfad_speziell, var_gewicht = 100, var_frequenz = 100, mindest_frequenz = 1):
     data = pd.read_csv(
-        r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variablitätsauswertung.csv",
+        r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variabilitätsauswertung_EU.csv",
         encoding="latin-1",
-        sep=";")
+        sep=";",
+        decimal=",",
+        dtype={"avg_Gewicht": float, "avg_Frequenz": float, "std_Gewicht": float, "std_Gewicht": float, "std_Frequenz": float, "variability_Frequenz": float, "Frachtkosten": float, "Sendungen": int,"Gewicht": float,"Profilkunde": bool})
 
     #filter
     data = data.loc[(data["variability_Gewicht"]<= var_gewicht) & (data["variability_Frequenz"]<= var_frequenz) & (data["avg_Frequenz"]>= mindest_frequenz) & (data["Profilkunde"] == True) ]
@@ -27,7 +29,7 @@ def data(speicherpfad_base, speicherpfad_speziell, var_gewicht = 100, var_freque
     frequenz_avg_array = []
     gewicht_avg_array = []
     for index, row in data.iterrows():
-        frequenz_avg_array.append(round_costum(row["avg_Frequenz"], 0.25))
+        frequenz_avg_array.append(round_costum(row["avg_Frequenz"], 0.5))
         gewicht_avg_array.append(round(row["avg_Gewicht"] /row["avg_Frequenz"]))
 
     df_parameter = pd.DataFrame(data= {"ID_Empfänger": data["ID_Empfänger"],
@@ -194,7 +196,7 @@ def patternzuordnung(var_gewicht, var_frequenz, mindest_frequenz, speicherpfad_s
 if __name__ == '__main__':
     var_gewicht = 1.33
     var_frequenz = 1.33
-    mindest_frequenz = 1
+    mindest_frequenz = 0.5
 
 
     einsparungs_array = []
@@ -209,7 +211,7 @@ if __name__ == '__main__':
 
     df_touren = pd.read_csv(
             r"../00_Resources/Grunddaten/Datensatz_TK_fertig.csv",
-            encoding="latin_1", sep=";")
+            encoding="latin_1", sep=";",decimal=",", dtype={"Gewicht": float, "Distanz": float, "Frachtkosten": float})
     frachtkosten_vorher = df_touren["Frachtkosten"].sum()
 
     frachtkosten_nachher = profilanwendung(speicherpfad_speziell)

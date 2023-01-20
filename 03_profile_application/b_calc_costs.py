@@ -2,6 +2,10 @@ import pandas as pd
 import datetime as dt
 from c_multiple_Knapsack import *
 
+tarifart = "grundpreis + tonne"  # "grundpreis + tonne", "matrix"
+preis_basis = 23.28
+preis_tonne = 35.31
+
 PAT = {
         5:
             [[1, 1, 1, 1, 1]],
@@ -33,8 +37,8 @@ PAT = {
     }
 
 def datumsliste(df_sendungen_ID):
-    start = pd.to_datetime("30.12.2019")
-    end = pd.to_datetime("31.12.2020")
+    start = pd.to_datetime("01.01.2022")
+    end = pd.to_datetime("31.12.2022")
 
     delta = end - start
 
@@ -65,8 +69,12 @@ def add_to_data_dict(data_result_pattern,df_sendungen_ID_date, weekday , date, g
     return data_result_pattern
 
 def frachtkosten_berechnen(df_tarifmatrix_long, gewicht, distanz):
-    tarifmatrix_long_filtered = df_tarifmatrix_long[(df_tarifmatrix_long["Distanz"] <= distanz) & (df_tarifmatrix_long["Gewicht_kg"] <= gewicht)]
-    return tarifmatrix_long_filtered.iloc[-1, -1]
+
+    if tarifart == "matrix":
+        tarifmatrix_long_filtered = df_tarifmatrix_long[(df_tarifmatrix_long["Distanz"] <= distanz) & (df_tarifmatrix_long["Gewicht_kg"] <= gewicht)]
+        return tarifmatrix_long_filtered.iloc[-1, -1]
+    elif tarifart == "grundpreis + tonne":
+        return preis_basis + gewicht * preis_tonne/1000
 
 def calc_avg_delay(df_send, shippingdate):
     sum_delay = 0
@@ -90,7 +98,7 @@ def profilanwendung(speicherpfad_speziell):
 
     df_sendungen = pd.read_csv(
         r"../00_Resources/Grunddaten/Datensatz_TK_fertig.csv", encoding="latin-1",
-        sep=";", )
+        sep=";",decimal=",", dtype={"Gewicht": float, "Distanz": float, "Frachtkosten": float} )
     df_sendungen = df_sendungen.set_index("ID_Empfänger", drop=False)
 
     send_list = list(df_sendungen["ID_Sendung"].values)
@@ -135,6 +143,7 @@ def profilanwendung(speicherpfad_speziell):
                                                    "Beladedatum": [],
                                                    })
 
+
         for index, row in df_dates[::-1].iterrows():
             state = pattern[row["Wochentag"]]
             #print( df_sendungen_ID.loc[df_sendungen_ID["Beladedatum"] == index])
@@ -146,7 +155,6 @@ def profilanwendung(speicherpfad_speziell):
                     #print(i)
                     #print(send_list)
                     send_list.remove(i)
-
 
             if (state == 1) & (df_sendungen_ID_date.shape[0] != 0) & (df_sendungen_ID_date["Gewicht"].sum() <= 25000): #Summe unter 25000
                 avg_delay = calc_avg_delay(df_sendungen_ID_date, row["Datum"])
@@ -207,21 +215,32 @@ def profilanwendung(speicherpfad_speziell):
 
     df_result_pattern = pd.DataFrame(data=data_result_pattern)
 
-    df_tarifmatrix_long = pd.read_csv(
-        r"../00_Resources/Grunddaten/Transportpreismatrix_TK_long.csv", encoding="latin_1",
-        sep=";")
+    df_tarifmatrix_long = None
+    if tarifart == "matrix":
+        df_tarifmatrix_long = pd.read_csv(
+            r"../00_Resources/Grunddaten/Transportpreismatrix_TK_long.csv", encoding="latin_1",
+            sep=";")
 
     df_result_pattern["Frachtkosten"] = df_result_pattern.apply(lambda row_l: frachtkosten_berechnen(df_tarifmatrix_long, row_l["Gewicht"], row_l["Distanz"]),axis=1)
 
+    df_result_pattern = df_result_pattern.astype({"ID_Empfänger": int, "Distanz": float, "Gewicht": float, "Frachtkosten": float})
     df_result_pattern.to_csv(
         path_or_buf=r"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_only_" + speicherpfad_speziell + ".csv",
         encoding="latin_1", sep=";", decimal=".")
 
-    df_result = pd.concat([df_result_pattern, df_sendungen_not_filter], ignore_index=True)
+    df_result_pattern.to_csv(
+        path_or_buf=r"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_only_" + speicherpfad_speziell + "_EU" + ".csv",
+        encoding="latin_1", sep=";", decimal=",")
 
+    df_result = pd.concat([df_result_pattern, df_sendungen_not_filter], ignore_index=True)
+    df_result = df_result.astype({"ID_Empfänger": int, "Distanz": float, "Gewicht": float, "Frachtkosten": float})
     df_result.to_csv(
         path_or_buf=r"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_" + speicherpfad_speziell +".csv",
         encoding="latin_1", sep=";", decimal=".")
+
+    df_result.to_csv(
+        path_or_buf=r"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_" + speicherpfad_speziell + "_EU" +".csv",
+        encoding="latin_1", sep=";", decimal=",")
 
     print("Ergebnis", df_result["Frachtkosten"].sum())
     print("Gesamtgewicht", df_result["Gewicht"].sum())

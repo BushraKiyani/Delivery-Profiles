@@ -3,6 +3,7 @@ import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import os
 
 import datetime
 
@@ -11,7 +12,7 @@ colors = {"ZZZ": "red", "BLAU": "blue", "GRAU": "grey", "GELB": "yellow", "GRÜN
 
 
 
-def creatDiagrammGewichtWeekdays(df, df_pattern):
+def creatDiagrammGewichtWeekdays(df, df_pattern, path_filter):
     df = df[(df["Wochentag"] != 5)]
     df_pattern = df_pattern[(df_pattern["Wochentag"] != 5)]
 
@@ -59,11 +60,11 @@ def creatDiagrammGewichtWeekdays(df, df_pattern):
     autolabel(plot2)
     figure.tight_layout()
 
-    plt.savefig(r"../00_Resources/post_Analysis/FrachtgewichtanteilProWochentag.pdf", dpi=2000)
+    plt.savefig(f"../00_Resources/post_Analysis/{path_filter}/FrachtgewichtanteilProWochentag.pdf", dpi=2000)
     #plt.show()
     plt.clf()
 
-def creatDiagrammSendungWeekdays(df, df_pattern):
+def creatDiagrammSendungWeekdays(df, df_pattern, path_filter):
     df = df[(df["Wochentag"] != 5)]
     df_pattern = df_pattern[(df_pattern["Wochentag"] != 5)]
 
@@ -111,11 +112,11 @@ def creatDiagrammSendungWeekdays(df, df_pattern):
     autolabel(plot2)
     figure.tight_layout()
 
-    plt.savefig(r"../00_Resources/post_Analysis/SendungsanteilProWochentag.pdf", dpi=2000)
+    plt.savefig(f"../00_Resources/post_Analysis/{path_filter}/SendungsanteilProWochentag.pdf", dpi=2000)
     #plt.show()
     plt.clf()
 
-def creatDiagrammGewichtWeekdaysPattern_only(df, df_pattern):
+def creatDiagrammGewichtWeekdaysPattern_only(df, df_pattern, path_filter):
     df = df[(df["ID_Empfänger"].isin(df_pattern["ID_Empfänger"].values)) & (df["Wochentag"] != 5)]
 
     df = df.groupby(["Wochentag"]).sum().reset_index()
@@ -162,11 +163,11 @@ def creatDiagrammGewichtWeekdaysPattern_only(df, df_pattern):
     autolabel(plot2)
     figure.tight_layout()
 
-    plt.savefig(r"../00_Resources/post_Analysis/FrachtgewichtanteilProWochentagPatternOnly.pdf", dpi=2000)
+    plt.savefig(f"../00_Resources/post_Analysis/{path_filter}/FrachtgewichtanteilProWochentagPatternOnly.pdf", dpi=2000)
     #plt.show()
     plt.clf()
 
-def creatDiagrammSendungenWeekdaysPattern_only(df, df_pattern):
+def creatDiagrammSendungenWeekdaysPattern_only(df, df_pattern, path_filter):
     df = df[(df["ID_Empfänger"].isin(df_pattern["ID_Empfänger"].values)) & (df["Wochentag"] != 5)]
 
     df = df.groupby(["Wochentag"]).count().reset_index()
@@ -215,18 +216,18 @@ def creatDiagrammSendungenWeekdaysPattern_only(df, df_pattern):
     autolabel(plot2)
     figure.tight_layout()
 
-    plt.savefig(r"../00_Resources/post_Analysis/SendungsanteilProWochentagPatternOnly.pdf", dpi=2000)
+    plt.savefig(f"../00_Resources/post_Analysis/{path_filter}/SendungsanteilProWochentagPatternOnly.pdf", dpi=2000)
     #plt.show()
     plt.clf()
 
 
 if __name__ == '__main__':
-    max_var_gewicht = 1.33
-    max_var_frequenz = 1.33
-    min_frequenz = 1
+    var_gewicht = 1.33
+    var_frequenz = 1.33
+    mindest_frequenz = 0.5
 
     df_touren = pd.read_csv(r"../00_Resources/Grunddaten/Datensatz_TK_fertig.csv",
-                                      encoding="latin_1", sep=";")
+                                      encoding="latin_1", sep=";",decimal=",", dtype={"Gewicht": float, "Distanz": float, "Frachtkosten": float})
     df_touren["Beladedatum"] = pd.to_datetime(df_touren["Beladedatum"],dayfirst = True)
     df_touren["Kalenderwoche"] = df_touren["Beladedatum"].dt.week
     df_touren["Wochentag"] = df_touren["Beladedatum"].dt.dayofweek
@@ -235,13 +236,18 @@ if __name__ == '__main__':
     df_touren = df_touren[["ID_Empfänger","Beladedatum", "Kalenderwoche","Wochentag", "Monat", "Gewicht", "Frachtkosten"]]
     #print(df_touren)
 
-    df_pattern_133 = pd.read_csv(f"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_var_gewicht{max_var_gewicht}_var_frequenz{max_var_frequenz}_mindest_frequenz{min_frequenz}.csv",
+    df_pattern_133 = pd.read_csv(f"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_var_gewicht{var_gewicht}_var_frequenz{var_frequenz}_mindest_frequenz{mindest_frequenz}.csv",
                                       encoding="latin_1", sep=";")
-    df_pattern_133_only = pd.read_csv(f"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_only_var_gewicht{max_var_gewicht}_var_frequenz{max_var_frequenz}_mindest_frequenz{min_frequenz}.csv",
+    df_pattern_133_only = pd.read_csv(f"../00_Resources/profile_results/Ergebnisse/Pattern_results_data_only_var_gewicht{var_gewicht}_var_frequenz{var_frequenz}_mindest_frequenz{mindest_frequenz}.csv",
                                       encoding="latin_1", sep=";")
+    path_filter = f"var_gewicht{var_gewicht}_var_frequenz{var_frequenz}_mindest_frequenz{mindest_frequenz}"
 
-    creatDiagrammGewichtWeekdays(df_touren, df_pattern=df_pattern_133)
-    creatDiagrammGewichtWeekdaysPattern_only(df_touren, df_pattern=df_pattern_133_only)
+    dir = f"../00_Resources/post_Analysis/{path_filter}"
+    if not os.path.exists(path=dir):
+        os.makedirs(dir)
 
-    creatDiagrammSendungWeekdays(df_touren, df_pattern= df_pattern_133)
-    creatDiagrammSendungenWeekdaysPattern_only(df_touren, df_pattern=df_pattern_133_only)
+    creatDiagrammGewichtWeekdays(df_touren, df_pattern_133, path_filter)
+    creatDiagrammGewichtWeekdaysPattern_only(df_touren, df_pattern_133_only, path_filter)
+
+    creatDiagrammSendungWeekdays(df_touren, df_pattern_133, path_filter)
+    creatDiagrammSendungenWeekdaysPattern_only(df_touren, df_pattern_133_only, path_filter)

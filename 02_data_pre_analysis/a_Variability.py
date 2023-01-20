@@ -36,6 +36,10 @@ def variabilitätsauswertung(df_frequenz, df_gewicht):
         columns=["avg_Gewicht", "avg_Frequenz", "std_Gewicht", "std_Frequenz", "variability_Gewicht",
                  "variability_Frequenz"], index=df_touren["ID_Empfänger"].unique())
 
+    df_auswertung.to_csv(
+        r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variablitätsauswertung_test.csv",
+        encoding="latin_1", sep=";", index_label="ID_Empfänger")
+
     for col in df_gewicht.columns:
         df_auswertung.loc[col, "avg_Gewicht"] = df_gewicht[col].mean()
         df_auswertung.loc[col, "avg_Frequenz"] = df_frequenz[col].mean()
@@ -70,10 +74,10 @@ def variabilitätsauswertung(df_frequenz, df_gewicht):
                           })
 
     df_auswertung.to_csv(
-        r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variablitätsauswertung.csv",
+        r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variabilitätsauswertung.csv",
         encoding="latin_1", sep=";", index_label="ID_Empfänger")
     df_auswertung.to_csv(
-        r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variablitätsauswertung_EU.csv",
+        r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variabilitätsauswertung_EU.csv",
         encoding="latin_1", sep=";", index_label="ID_Empfänger", decimal=',')
 
     return df_auswertung
@@ -150,6 +154,9 @@ def anteile_nach_varklassen(df):
     df_borders.to_csv(
         r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variabiltätsauswertung_Anteile.csv",
         encoding="latin_1", sep=";")
+    df_borders.to_csv(
+        r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variabiltätsauswertung_AnteileEU.csv",
+        encoding="latin_1", sep=";", decimal=',')
 
     return df_borders, data_kundenanzahl
 
