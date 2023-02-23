@@ -250,45 +250,45 @@ if __name__ == "__main__":
     df_rohdaten = calc_period(df_rohdaten) #Periode hinzufügen
 
     #Straßennamen korrigieren
-    df_rohdaten = correct_streetnames(df_rohdaten)
-    df_rohdaten = change_streetnames_by_hand(df_rohdaten)
+    #df_rohdaten = correct_streetnames(df_rohdaten)
+    #df_rohdaten = change_streetnames_by_hand(df_rohdaten)
     df_rohdaten["Straße_Empfänger"] = df_rohdaten["Straße_Empfänger"].str.upper()
 
     # ID_liste ersten mit neuen IDs pro Lieferort
-    ID_liste = df_rohdaten[["Straße_Empfänger","PLZ_Empfänger", "Stadt_Empfänger"]].drop_duplicates(keep= "last",subset=["Straße_Empfänger","PLZ_Empfänger"]).reset_index(drop=True)
-    ID_liste.index = ID_liste.index +1
-    ID_liste = ID_liste.reset_index().rename(columns= {"index":"ID_Empfänger"})
+    #ID_liste = df_rohdaten[["Straße_Empfänger","PLZ_Empfänger", "Stadt_Empfänger"]].drop_duplicates(keep= "last",subset=["Straße_Empfänger","PLZ_Empfänger"]).reset_index(drop=True)
+    #ID_liste.index = ID_liste.index + 1
+    #ID_liste = ID_liste.reset_index().rename(columns= {"index":"ID_Empfänger"})
 
     # Neue ID zuordnen
-    df_rohdaten = change_ID_Empfänger(ID_liste, df_rohdaten)
-    ID_liste = add_Empfänger_Namen(ID_liste, df_rohdaten)
+    #df_rohdaten = change_ID_Empfänger(ID_liste, df_rohdaten)
+    #ID_liste = add_Empfänger_Namen(ID_liste, df_rohdaten)
 
-    ID_liste["Anzahl_ID_Empfänger"] = df_rohdaten.groupby("ID_Empfänger").agg("count")["Transport"].values
+    #ID_liste["Anzahl_ID_Empfänger"] = df_rohdaten.groupby("ID_Empfänger").agg("count")["Transport"].values
     #ID_liste.to_csv(path_or_buf=r"../00_Resources/Grunddaten/ID_liste.csv",
     #                sep=";", encoding="latin1", decimal=".")
 
     # Gleiche IDs zusammenführen
-    df_Levenshteindistance = check_ID_liste_dublicate(ID_liste)
-    df_Levenshteindistance.to_csv(
-        path_or_buf=r"../00_Resources/Grunddaten/ID_liste_Levenshteindistance.csv",
-        sep=";", encoding="latin1", decimal=".")
-    df_rohdaten = adjust_streetnames_in_PLZ(df_rohdaten,df_Levenshteindistance)
+    #df_Levenshteindistance = check_ID_liste_dublicate(ID_liste)
+    #df_Levenshteindistance.to_csv(
+    #    path_or_buf=r"../00_Resources/Grunddaten/ID_liste_Levenshteindistance.csv",
+    #    sep=";", encoding="latin1", decimal=".")
+    #df_rohdaten = adjust_streetnames_in_PLZ(df_rohdaten,df_Levenshteindistance)
 
-    ID_liste = df_rohdaten[["Straße_Empfänger","PLZ_Empfänger", "Stadt_Empfänger"]].drop_duplicates(keep= "last",subset=["Straße_Empfänger","PLZ_Empfänger"]).reset_index(drop=True)
-    ID_liste.index = ID_liste.index +1
-    ID_liste = ID_liste.reset_index().rename(columns= {"index":"ID_Empfänger"})
-    ID_liste = add_Empfänger_Namen(ID_liste,df_rohdaten)
-    ID_liste = add_Koordinaten(ID_liste)
-    ID_liste = ID_liste.reset_index()
+    #ID_liste = df_rohdaten[["Straße_Empfänger","PLZ_Empfänger", "Stadt_Empfänger"]].drop_duplicates(keep= "last",subset=["Straße_Empfänger","PLZ_Empfänger"]).reset_index(drop=True)
+    #ID_liste.index = ID_liste.index +1
+    #ID_liste = ID_liste.reset_index().rename(columns= {"index":"ID_Empfänger"})
+    #ID_liste = add_Empfänger_Namen(ID_liste,df_rohdaten)
+    #ID_liste = add_Koordinaten(ID_liste)
+    #ID_liste = ID_liste.reset_index()
     #df_rohdaten = split_IDs(df_rohdaten) # neue IDs Übertragen
 
-    df_rohdaten = add_coordinates(df_rohdaten, ID_liste) # Koordinaten hinzufügen
+    #df_rohdaten = add_coordinates(df_rohdaten, ID_liste) # Koordinaten hinzufügen
 
     #ID_liste = df_rohdaten[["ID_Empfänger","Name_Empfänger", "Straße_Empfänger","PLZ_Empfänger", "Stadt_Empfänger", "empfaenger_lon", "empfaenger_lat"]].drop_duplicates(keep= "last",subset=["ID_Empfänger","Straße_Empfänger","PLZ_Empfänger"]).reset_index(drop=True)
-    ID_liste = ID_liste.rename(columns= {"empfaenger_lon": "lon","empfaenger_lat":"lat"})
+    #ID_liste = ID_liste.rename(columns= {"empfaenger_lon": "lon","empfaenger_lat":"lat"})
 
-    ID_liste.to_csv(path_or_buf=r"../00_Resources/Grunddaten/ID_liste.csv",
-                   sep=";", encoding="latin1", decimal=".")
+    #ID_liste.to_csv(path_or_buf=r"../00_Resources/Grunddaten/ID_liste.csv",
+    #               sep=";", encoding="latin1", decimal=".")
 
     df_rohdaten.to_csv(path_or_buf=r"../00_Resources/Grunddaten/Datensatz_TK_bereinigt.csv",
                        sep=";", encoding="latin1", decimal=".")
