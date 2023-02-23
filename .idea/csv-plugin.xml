@@ -10,6 +10,48 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\00_Resources\Grunddaten\Profilkunden_Koordinaten.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Grunddaten\distance_matrix_eukl.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Grunddaten\distance_matrix_eukl_EU.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Instances\MR_Instance_Nodes\MR_Instance_Nodes_real_matrix_False_1_1_1.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Instances\MR_Instance_Nodes\MR_Instance_Nodesreal_matrixFalse_1_1_1.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\pre_Analysis\Variabilitätsauswertung\Variabilitätsauswertung.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\00_Resources\pre_Analysis\Variabilitätsauswertung\Variabiltätsauswertung_Anteile.csv">
           <value>
             <Attribute>
@@ -38,6 +80,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\00_Resources\profile_results\Ausgangsdaten\Daten_var_gewicht0.75_var_frequenz0.75_mindest_frequenz1.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\00_Resources\profile_results\Ausgangsdaten\Daten_var_gewicht1.33_var_frequenz1.33_mindest_frequenz1.csv">
           <value>
             <Attribute>
@@ -53,6 +102,20 @@
           </value>
         </entry>
         <entry key="\Resources\Grunddaten\Rohdaten_TK.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Resources\Version_2\Milkruns\Instanzbeschreibung\df_Instanzbeschreibung_1.33.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Resources\Version_2\Milkruns\Instanznodes\TK_Instanz_Nodes0.75-0.75.csv">
           <value>
             <Attribute>
               <option name="separator" value=";" />
