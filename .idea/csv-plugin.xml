@@ -31,14 +31,56 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\00_Resources\Instances\MR_Instance_Nodes\MR_Instance_Nodes_real_matrix_False_1_1_1.csv">
+        <entry key="\00_Resources\Instances\Results\df_basedata_MR_1-1.33-1.33-SZ15Multi1Veh_cap13-20-1800_außer_KW[]Knappsack_True.csv">
           <value>
             <Attribute>
               <option name="separator" value=";" />
             </Attribute>
           </value>
         </entry>
-        <entry key="\00_Resources\Instances\MR_Instance_Nodes\MR_Instance_Nodesreal_matrixFalse_1_1_1.csv">
+        <entry key="\00_Resources\Instances\Results\pattern\df_patterns_Instanz1-1.33-1.33-SZ15Multi1Veh_cap13-20-1800.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Matrices\TK_distmatrix_0-1.33-1.33.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Matrices\TK_distmatrix_0-100-100.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Matrices\TK_distmatrix_1-1.33-1.33.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Matrices\TK_distmatrix_eukl_0-100-100.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Matrices\TK_distmatrix_eukl_1-1.33-1.33.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Matrices\TK_durmatrix_0-100-100.csv">
           <value>
             <Attribute>
               <option name="separator" value=";" />

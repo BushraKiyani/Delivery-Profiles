@@ -11,7 +11,7 @@
 
 
 import sys
-p='C:\gurobi1001\win64\python37\lib\gurobipy'
+p='C:\gurobi911\win64\python38\lib\gurobipy'
 
 if p not in sys.path:
     sys.path.append(p)

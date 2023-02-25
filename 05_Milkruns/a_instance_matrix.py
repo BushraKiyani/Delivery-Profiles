@@ -36,7 +36,7 @@ def get_distance_duration(koordinaten_list):
                 # '5b3ce3597851110001cf6248e6bcafc8ce1e458f9c249254ad25a89e' #'5b3ce3597851110001cf6248033cc8f1b7c245168f99842d15f1fa05', "5b3ce3597851110001cf6248763389f407b14e3897e444e9a3aad540"
                 'Content-Type': 'application/json; charset=utf-8'
             }
-            call = requests.post('https://api.openrouteservice.org/v2/matrix/driving-hgv', json=body, headers=headers)
+            call = requests.post("https://api.openrouteservice.org/v2/matrix/driving-hgv", json=body, headers=headers)
             #print(call)
             response_dict = call.json()
             #print(response_dict)
@@ -61,7 +61,7 @@ def create_matrix_eukl(koordinaten_list):
     def calc_dist_km(start_lon, start_lat, end_lon, end_lat):
         start_point = (start_lon, start_lat)
         end_point = (end_lon, end_lat)
-        return distance(lonlat(*start_point), lonlat(*end_point)).km
+        return distance(lonlat(*start_point), lonlat(*end_point)).km *1.4
 
     for i in koordinaten_list:
         sub_dist_eukl = []
@@ -89,10 +89,10 @@ if __name__ == '__main__':
 
     #df_koord = pd.read_csv(r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\ID_liste.csv", encoding="latin_1", sep=";", index_col= "ID_Empfänger")
 
-    var_gew = 1
-    var_freq = 1
+    var_gew = 1.33
+    var_freq = 1.33
     min_freq = 1
-    real_matrix = False
+    real_matrix = True
     tarif_matrix = False
     preis_basis = 23.28
     preis_tonne = 35.31
@@ -129,65 +129,74 @@ if __name__ == '__main__':
     # Euklinsische Distanzmatrix erstellen
     dist_eukl = create_matrix_eukl(df_instance["Koordinaten"].values.tolist())
 
-    df_distmatrix_eukl = pd.DataFrame(columns=df_instance.ID_Empfänger.values, index=df_instance.ID_Empfänger.values,
-                                 data=dist_eukl)
+    df_distmatrix_eukl = pd.DataFrame(columns=df_instance.ID_Empfänger.values,
+                                      index=df_instance.ID_Empfänger.values,
+                                      data=dist_eukl)
     print(df_distmatrix_eukl)
 
-    if real_matrix == True:
+    df_distmatrix_eukl.to_csv(
+        r"../00_Resources/Matrices/TK_distmatrix_eukl_"+str(min_freq)+"-" + str(var_gew) + "-" + str(var_freq) + ".csv", sep=";",
+        encoding="latin1", decimal=".")
 
-        # Reale Matrizen erstellen
-        dist, dur = get_distance_duration(coordinates_list)
+    if real_matrix == False:
+        # Distanzen hinzufügen
+        df_instance["Distanz"] = df_distmatrix_eukl.loc[0].values[0:]
+        # Fahrzeiten hinzufügen
+        df_instance["Dauer"] = df_distmatrix_eukl.loc[0].values[0:]
 
-        print(dist)  # distance in km
-        dur = (np.array(dur) / 60).tolist()
-        # print(dur)  #duration in s
+    else:
+        if not os.path.exists(r"../00_Resources/Matrices/TK_durmatrix_"+str(min_freq)+"-" + str(
+               var_gew) + "-" + str(var_freq) + ".csv"):
+            # Reale Matrizen erstellen
+            dist, dur = get_distance_duration(df_instance["Koordinaten"].values.tolist())
 
-        dist = make_symetic(dist)
-        dur = make_symetic(dur)
+            print(dist)  # distance in km
+            dur = (np.array(dur) / 60).tolist()
+            # print(dur)  #duration in s
 
-        df_distmatrix = pd.DataFrame(columns=df_instance.ID_Empfänger.values, index=df_instance.ID_Empfänger.values,
-                                         data=dist)
-        df_durmatrix = pd.DataFrame(columns=df_instance.ID_Empfänger.values, index=df_instance.ID_Empfänger.values,
-                                        data=dur)
+            dist = make_symetic(dist)
+            dur = make_symetic(dur)
 
-        print(df_distmatrix)
-        print(df_durmatrix)
+            df_distmatrix = pd.DataFrame(columns=df_instance.ID_Empfänger.values, index=df_instance.ID_Empfänger.values,
+                                             data=dist)
+            df_durmatrix = pd.DataFrame(columns=df_instance.ID_Empfänger.values, index=df_instance.ID_Empfänger.values,
+                                            data=dur)
 
-        df_distmatrix_stacked = df_distmatrix.stack().reset_index()
-        df_durmatrix_stacked = df_durmatrix.stack().reset_index()
+            print(df_distmatrix)
+            print(df_durmatrix)
 
-        df_distmatrix_stacked.columns = ["from", "to", "distance"]
-        df_distmatrix_stacked["time"] = df_durmatrix_stacked[0]
+            df_distmatrix_stacked = df_distmatrix.stack().reset_index()
+            df_durmatrix_stacked = df_durmatrix.stack().reset_index()
 
-        df_distmatrix_stacked.to_csv(
-            r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Matrizen\TK_matrizen_" + str(
-                var_gew) + "-" + str(var_freq) + ".txt", sep=";",
-            encoding="latin1", decimal=".", index=False)
+            df_distmatrix_stacked.columns = ["from", "to", "distance"]
+            df_distmatrix_stacked["time"] = df_durmatrix_stacked[0]
 
-        df_distmatrix.to_csv(
-            r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Matrizen\TK_distmatrix_" + str(
-               var_gew) + "-" + str(var_freq) + ".csv", sep=";",
-            encoding="latin1", decimal=".")
-        df_durmatrix.to_csv(
-            r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Matrizen\TK_durmatrix_" + str(
-               var_gew) + "-" + str(var_freq) + ".csv", sep=";",
-            encoding="latin1", decimal=".")
+            df_distmatrix_stacked.to_csv(
+                r"../00_Resources/Matrices/TK_matrizen_" +str(min_freq)+"-" + str(
+                    var_gew) + "-" + str(var_freq) + ".txt", sep=";",
+                encoding="latin1", decimal=".", index=False)
 
-    if real_matrix:
+            df_distmatrix.to_csv(
+                r"../00_Resources/Matrices/TK_distmatrix_"+str(min_freq)+"-" + str(
+                   var_gew) + "-" + str(var_freq) + ".csv", sep=";",
+                encoding="latin1", decimal=".")
+            df_durmatrix.to_csv(
+                r"../00_Resources/Matrices/TK_durmatrix_" +str(min_freq)+"-" + str(
+                   var_gew) + "-" + str(var_freq) + ".csv", sep=";",
+                encoding="latin1", decimal=".")
+
+
         #Distanzen hinzufügen
-        df_distmatrix = pd.read_csv(r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Matrizen\TK_distmatrix_eukl_"+str(var_gew)+"-"+str(var_freq)+".csv", sep=";",
+        df_distmatrix = pd.read_csv(r"../00_Resources/Matrices/TK_distmatrix_eukl_"+str(min_freq)+"-"+str(var_gew)+"-"+str(var_freq)+".csv", sep=";",
                     encoding="latin1", decimal=".")
         df_instance["Distanz"] = df_distmatrix.loc[0].values[1:]
         print(df_instance["Distanz"])
 
         #Fahrzeiten hinzufügen
-        df_durmatrix = pd.read_csv(r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Matrizen\TK_durmatrix_"+str(var_gew)+"-"+str(var_freq)+".csv", sep=";",
+        df_durmatrix = pd.read_csv(r"../00_Resources/Matrices/TK_durmatrix_"+str(min_freq)+"-" +str(var_gew)+"-"+str(var_freq)+".csv", sep=";",
                     encoding="latin1", decimal=".")
         df_instance["Dauer"] = df_durmatrix.loc[0].values[1:]
         print(df_instance["Dauer"])
-    else:
-        df_instance["Distanz"] = df_distmatrix_eukl.loc[0].values[0:]
-        df_instance["Dauer"] = df_distmatrix_eukl.loc[0].values[0:]
 
 
     # Add AF Costs
@@ -202,5 +211,5 @@ if __name__ == '__main__':
 
     print(df_instance)
 
-    df_instance.to_csv(r"../00_Resources/Instances/MR_Instance_Nodes/MR_Instance_Nodes"+"_real_matrix_"+str(real_matrix)+"_"+str(min_freq)+"_"+str(var_gew)+"_"+str(var_freq)+".csv", sep=";",
+    df_instance.to_csv(r"../00_Resources/Instances/MR_Instance_Nodes/MR_Instance_Nodes"+str(min_freq)+"_"+str(var_gew)+"_"+str(var_freq)+".csv", sep=";",
                 encoding="latin1", decimal=".")

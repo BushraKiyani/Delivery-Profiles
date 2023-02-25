@@ -171,7 +171,8 @@ def main(data, solvingtime, cols):
     # Define cost of each arc.
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
-    # Add Weight Capacity constraint.
+
+    # Add Capacity constraint.
     def demand_callback(from_index):
         """Returns the demand of the node."""
         # Convert from routing variable Index to demands NodeIndex.
@@ -194,7 +195,7 @@ def main(data, solvingtime, cols):
             routing.solver().Add(routing.ActiveVar(manager.NodeToIndex(index)) == 0)
 
 
-    # Add Time Capacity constraint.
+    # Add Capacity constraint.
     def duration_callback(from_index, to_index):
         from_node = manager.IndexToNode(from_index)
         to_node = manager.IndexToNode(to_index)
