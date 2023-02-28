@@ -244,7 +244,7 @@ def zusammenfassung(instanzname, no_MR_weeks, MR_Knappsack, df_AFNodes, df_patte
 
 if __name__ == '__main__':
     no_MR_weeks = []
-    instanzname = "1-1.33-1.33-SZ15Multi1Veh_cap13-600-1800"
+    instanzname = "1-1.33-1.33-SZ15Multi1.5Veh_cap13-600-1800"
     MR_Knappsack = True
 
     df_basedata = pd.read_csv(r"../00_Resources/Grunddaten/Datensatz_TK_fertig.csv", encoding="latin-1", sep=";",decimal=",") # ACHTUNG DECIMAL

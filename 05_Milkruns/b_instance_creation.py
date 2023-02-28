@@ -35,7 +35,7 @@ def write_txt(df_nodes, df_vehicles, df_instance,var_gew, var_freq, servicetime,
 
 
 if __name__ == '__main__':
-    multi = 1
+    multi = 1.5
 
     var_gew = 1.33
     var_freq = 1.33
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     veh_ID_array = [0,1,2]
     veh_num_array = [veh_num,veh_num,veh_num]
     veh_dist_array = [9*60,9*60,9*60]
-    veh_cap_array = [6500*veh_cap, 12000*veh_cap, 25000*veh_cap]
+    veh_cap_array = [9000*veh_cap, 12000*veh_cap, 24000*veh_cap]
 
     veh_price_per_km = [0.3,0.4,0.6]
     veh_price_per_km = [round(i * multi,4) for i in veh_price_per_km]

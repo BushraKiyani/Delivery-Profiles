@@ -70,67 +70,67 @@ def MR_auslastung_VarK_optimierung():
 
     print("")
 
-    df_MR_075_1 = pd.read_csv(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz0.75-0.75-SZ20Multi1.csv",
-        encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
-    df_MR_075_1["Dataframe"] = "VarK <= 0.75"
-    df_MR_075_1["K-Faktor"] = 1
 
-    df_MR_075_12 = pd.read_csv(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz0.75-0.75-SZ20Multi1.2.csv",
-        encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
-    df_MR_075_12["Dataframe"] = "VarK <= 0.75"
-    df_MR_075_12["K-Faktor"] = 1.2
-
-    df_MR_075_08 = pd.read_csv(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz0.75-0.75-SZ20Multi0.8.csv",
-        encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
-    df_MR_075_08["Dataframe"] = "VarK <= 0.75"
-    df_MR_075_08["K-Faktor"] = 0.8
-
-    df_MR_1_1 = pd.read_csv(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz1-1-SZ20Multi13-600-1800.csv",
-        encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
-    df_MR_1_1["Dataframe"] = "VarK <= 1"
-    df_MR_1_1["K-Faktor"] = 1
-
-    df_MR_1_12 = pd.read_csv(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz1-1-SZ20Multi1.23-600-1800.csv",
-        encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
-    df_MR_1_12["Dataframe"] = "VarK <= 1"
-    df_MR_1_12["K-Faktor"] = 1.2
-
-    df_MR_1_08 = pd.read_csv(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz1-1-SZ20Multi0.83-600-1800.csv",
-        encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
-    df_MR_1_08["Dataframe"] = "VarK <= 1"
-    df_MR_1_08["K-Faktor"] = 0.8
-
+    # df_MR_075_1 = pd.read_csv(
+    #     r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz0.75-0.75-SZ20Multi1.csv",
+    #     encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
+    # df_MR_075_1["Dataframe"] = "VarK <= 0.75"
+    # df_MR_075_1["K-Faktor"] = 1
+    #
+    # df_MR_075_12 = pd.read_csv(
+    #     r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz0.75-0.75-SZ20Multi1.2.csv",
+    #     encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
+    # df_MR_075_12["Dataframe"] = "VarK <= 0.75"
+    # df_MR_075_12["K-Faktor"] = 1.2
+    #
+    # df_MR_075_08 = pd.read_csv(
+    #     r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz0.75-0.75-SZ20Multi0.8.csv",
+    #     encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
+    # df_MR_075_08["Dataframe"] = "VarK <= 0.75"
+    # df_MR_075_08["K-Faktor"] = 0.8
+    #
+    # df_MR_1_1 = pd.read_csv(
+    #     r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz1-1-SZ20Multi13-600-1800.csv",
+    #     encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
+    # df_MR_1_1["Dataframe"] = "VarK <= 1"
+    # df_MR_1_1["K-Faktor"] = 1
+    #
+    # df_MR_1_12 = pd.read_csv(
+    #     r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz1-1-SZ20Multi1.23-600-1800.csv",
+    #     encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
+    # df_MR_1_12["Dataframe"] = "VarK <= 1"
+    # df_MR_1_12["K-Faktor"] = 1.2
+    #
+    # df_MR_1_08 = pd.read_csv(
+    #     r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz1-1-SZ20Multi0.83-600-1800.csv",
+    #     encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
+    # df_MR_1_08["Dataframe"] = "VarK <= 1"
+    # df_MR_1_08["K-Faktor"] = 0.8
+    #
     df_MR_133_1 = pd.read_csv(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz1.33-1.33-SZ20Multi13-600-1800.csv",
+        r"../00_Resources/Instances/Results/tours/df_tours_Instanz1-1.33-1.33-SZ15Multi1Veh_cap13-600-1800.csv",
         encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
     df_MR_133_1["Dataframe"] = "VarK <= 1.33"
     df_MR_133_1["K-Faktor"] = 1
 
     df_MR_133_12 = pd.read_csv(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz1.33-1.33-SZ20Multi1.23-600-1800.csv",
+        r"../00_Resources/Instances/Results/tours/df_tours_Instanz1-1.33-1.33-SZ15Multi1.2Veh_cap13-600-1800.csv",
         encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
     df_MR_133_12["Dataframe"] = "VarK <= 1.33"
     df_MR_133_12["K-Faktor"] = 1.2
 
-    df_MR_133_08 = pd.read_csv(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Rohergebnisse\df_tours_TK_Instanz1.33-1.33-SZ20Multi0.83-600-1800.csv",
+    df_MR_133_15 = pd.read_csv(
+        r"../00_Resources/Instances/Results/tours/df_tours_Instanz1-1.33-1.33-SZ15Multi1.5Veh_cap13-600-1800.csv",
         encoding="latin-1", sep=";",converters={"Sequenz_extID": literal_eval})
-    df_MR_133_08["Dataframe"] = "VarK <= 1.33"
-    df_MR_133_08["K-Faktor"] = 0.8
+    df_MR_133_15["Dataframe"] = "VarK <= 1.33"
+    df_MR_133_15["K-Faktor"] = 1.5
 
-    df_MR = pd.concat([df_MR_075_1, df_MR_075_12, df_MR_075_08,
-                       df_MR_1_1, df_MR_1_12, df_MR_1_08,
-                       df_MR_133_1, df_MR_133_12, df_MR_133_08
+    df_MR = pd.concat([
+                       df_MR_133_1, df_MR_133_12, df_MR_133_15
                        ], ignore_index=True)
 
     df_nodes = pd.read_csv(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Instanznodes\TK_Instanz_Nodes1.33-1.33.csv",
+        r"../00_Resources/Instances/MR_Instance_Nodes/MR_Instance_Nodes1_1.33_1.33.csv",
         encoding="latin-1", sep=";", index_col="ID_Empfänger")
 
     df_MR["Gewicht"] = df_MR["Sequenz_extID"].apply(lambda list: sum_gewicht(list, df_nodes))
@@ -167,11 +167,11 @@ def MR_auslastung_VarK_optimierung():
     fig.tight_layout()
 
     fig.savefig(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Auswertung\Boxplot\Boxplot_Auslastung_nach_VarK_nach_opt.pdf")
+        r"../00_Resources/Instances/MR_Figures/Boxplots/Boxplot_Auslastung_nach_VarK_nach_opt.pdf")
 
-    df_MR.to_csv(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Auswertung\Boxplot\Boxplot_Auslastung_nach_VarK_nach_opt_data.csv",
-        encoding="latin_1", sep=";", index=False)
+    #df_MR.to_csv(
+    #    r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Auswertung\Boxplot\Boxplot_Auslastung_nach_VarK_nach_opt_data.csv",
+    #    encoding="latin_1", sep=";", index=False)
 
     # only <=1.33
     df_MR = df_MR[df_MR["Dataframe"] == "VarK <= 1.33"]
@@ -195,7 +195,7 @@ def MR_auslastung_VarK_optimierung():
     fig.tight_layout()
 
     fig.savefig(
-        r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Auswertung\Boxplot\Boxplot_Auslastung_nach_VarK_nach_opt_1.33.pdf")
+        r"../00_Resources/Instances/MR_Figures/Boxplots/Boxplot_Auslastung_nach_VarK_nach_opt_1.33.pdf")
 
 def MR_auslastung_Monat_ohne_korr():
     df_MR_Auslastung = pd.read_csv(
@@ -333,9 +333,9 @@ def MR_auslastung_VarK_ohne_korr():
     df_auslastung_table.to_latex(r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Auswertung\Boxplot\df_MR_Auslastung_Vergleich"+".txt",)
 
 def run_visualisierung_MR():
-    dateiname = r"\df_MR_Einsparungen_0.75-0.75-SZ20Multi1_außer_KW[1, 53]Knappsack_True"
-    instanzname = dateiname[19:]
-    datenpfad = r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Ergebnisse\Auswertung\Diagrammdaten"+ str(dateiname)+r".csv"
+    #dateiname = r"\df_MR_Einsparungen_0.75-0.75-SZ20Multi1_außer_KW[1, 53]Knappsack_True"
+    #instanzname = dateiname[19:]
+    #datenpfad = r"..\00_Resources\Instances\Results\MR_savings\Diagrammdaten"+ str(dateiname)+".csv"
 
     #scatter_plot(datenpfad,instanzname)
 

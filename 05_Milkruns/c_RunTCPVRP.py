@@ -69,6 +69,12 @@ if __name__ == "__main__":
 
     filelist = [
         r'../00_Resources/Instances/MR_Instance/Instanz1-1.33-1.33-SZ15Multi1Veh_cap1.txt',
+        r'../00_Resources/Instances/MR_Instance/Instanz1-1.33-1.33-SZ15Multi1.2Veh_cap1.txt',
+        r'../00_Resources/Instances/MR_Instance/Instanz1-1.33-1.33-SZ15Multi1.5Veh_cap1.txt',
+        #r'../00_Resources/Instances/MR_Instance/Instanz1-0.75-0.75-SZ15Multi1Veh_cap1.txt',
+        #r'../00_Resources/Instances/MR_Instance/Instanz1-0.75-0.75-SZ15Multi1.2Veh_cap1.txt',
+        #r'../00_Resources/Instances/MR_Instance/Instanz1-0.75-0.75-SZ15Multi1.5Veh_cap1.txt',
+
     ]
     instance_name_array = []
     col_numer_array = []

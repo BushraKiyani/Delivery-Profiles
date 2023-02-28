@@ -31,14 +31,56 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\00_Resources\Instances\Results\df_basedata_MR_1-1.33-1.33-SZ15Multi1Veh_cap13-20-1800_außer_KW[]Knappsack_True.csv">
+        <entry key="\00_Resources\Instances\MR_Instance_Nodes\MR_Instance_Nodes1_1.33_1.33.csv">
           <value>
             <Attribute>
               <option name="separator" value=";" />
             </Attribute>
           </value>
         </entry>
-        <entry key="\00_Resources\Instances\Results\pattern\df_patterns_Instanz1-1.33-1.33-SZ15Multi1Veh_cap13-20-1800.csv">
+        <entry key="\00_Resources\Instances\MR_Instance_Nodes\MR_Instance_Nodes1_1_1.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Instances\Results\AFnodes\df_AFNodes_Instanz1-1.33-1.33-SZ15Multi1.2Veh_cap13-600-1800.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Instances\Results\AFnodes\df_AFNodes_Instanz1-1.33-1.33-SZ15Multi1.5Veh_cap13-600-1800.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Instances\Results\MR_summary\df_MR_Zusammenfassung_1-1.33-1.33-SZ15Multi1.2Veh_cap13-600-1800_außer_KW[]Knappsack_True.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Instances\Results\tours\df_tours_Instanz1-1.33-1.33-SZ15Multi1.2Veh_cap13-600-1800.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Instances\Results\tours\df_tours_Instanz1-1.33-1.33-SZ15Multi1.5Veh_cap13-600-1800.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\00_Resources\Instances\Results\tours\df_tours_Instanz1-1.33-1.33-SZ15Multi1Veh_cap13-600-1800.csv">
           <value>
             <Attribute>
               <option name="separator" value=";" />
