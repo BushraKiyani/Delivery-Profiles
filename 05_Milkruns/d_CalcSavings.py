@@ -141,7 +141,7 @@ def calcMilkrun(df_basedata_MR, df_milkruns, df_pattern, df_basedata_no_MR, no_M
 
     min_KW = df_basedata_MR["Beladedatum"].min().isocalendar()[1]
     max_KW = df_basedata_MR["Beladedatum"].max().isocalendar()[1]
-    for KW in range(min_KW,max_KW+1):#range(df_basedata_MR["Kalenderwoche"].min(), df_basedata_MR["Kalenderwoche"].max()+1):
+    for KW in range(min_KW+1,max_KW+1):#range(df_basedata_MR["Kalenderwoche"].min(), df_basedata_MR["Kalenderwoche"].max()+1):
 
         for tag in range(0,4+1):
                 df_milkruns_filter = df_milkruns.loc[df_milkruns["Wochentag"] == tag]
@@ -244,7 +244,7 @@ def zusammenfassung(instanzname, no_MR_weeks, MR_Knappsack, df_AFNodes, df_patte
 
 if __name__ == '__main__':
     no_MR_weeks = []
-    instanzname = "1-1.33-1.33-SZ15Multi1.5Veh_cap13-600-1800"
+    instanzname = "1-100-100-SZ15Multi1Veh_cap13-600-1800"
     MR_Knappsack = True
 
     df_basedata = pd.read_csv(r"../00_Resources/Grunddaten/Datensatz_TK_fertig.csv", encoding="latin-1", sep=";",decimal=",") # ACHTUNG DECIMAL
