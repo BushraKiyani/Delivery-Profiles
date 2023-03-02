@@ -89,9 +89,9 @@ if __name__ == '__main__':
 
     #df_koord = pd.read_csv(r"C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\ID_liste.csv", encoding="latin_1", sep=";", index_col= "ID_Empfänger")
 
-    var_gew = 0.75
-    var_freq = 0.75
-    min_freq = 1
+    var_gew = 100
+    var_freq = 100
+    min_freq = 0.5
     real_matrix = True
     tarif_matrix = False
     preis_basis = 23.28

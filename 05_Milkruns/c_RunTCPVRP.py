@@ -6,7 +6,7 @@ from tc_mrs.CVRPwithColumnGeneration import *
 import time
 import pandas as pd
 
-def runtcpvrp(instfile,suchzeit_heu,maxAllowedStops, dimafile=None, heuristicColumn_gen = False, lösungszeit = False):
+def runtcpvrp(instfile,suchzeit_heu,maxAllowedStops, dimafile=None, heuristicColumn_gen = False, lösungszeit = False, mrOnly = True):
     start = time.time()
 
     inst = TCMilkInstance(instfile)
@@ -31,7 +31,7 @@ def runtcpvrp(instfile,suchzeit_heu,maxAllowedStops, dimafile=None, heuristicCol
         #print(t.id, " ", t.sequ, " ", t.sos, " ", t.dist, " ", t.vol)
 
     logging = True
-    mrOnly = True
+    mrOnly = mrOnly
     wah = False
 
     solve = TCPVRPSetCover2(inst, dima, cols,lösungszeit)#g.cols
@@ -62,18 +62,22 @@ def runtcpvrp(instfile,suchzeit_heu,maxAllowedStops, dimafile=None, heuristicCol
     return len(cols), ende - start, sol.objValue
 
 if __name__ == "__main__":
-    heuristicColumn_gen = True
-    suchzeit_heu = 600
-    maxAllowedStops =3
-    lösungszeit = 1800
+    heuristic_col_gen_bool = True
+    searchtime_heuristic_col_gen = 600
+    max_allowed_stops_complet_col_gen =3
+    max_searchtime_TCVRP = 1800
+    mrOnly = True
 
     filelist = [
-        r'../00_Resources/Instances/MR_Instance/Instanz1-1.33-1.33-SZ15Multi1Veh_cap1.txt',
-        r'../00_Resources/Instances/MR_Instance/Instanz1-1.33-1.33-SZ15Multi1.2Veh_cap1.txt',
-        r'../00_Resources/Instances/MR_Instance/Instanz1-1.33-1.33-SZ15Multi1.5Veh_cap1.txt',
+        #r'../00_Resources/Instances/MR_Instance/Instanz1-1.33-1.33-SZ15Multi1Veh_cap1.txt',
+        #r'../00_Resources/Instances/MR_Instance/Instanz1-1.33-1.33-SZ15Multi1.2Veh_cap1.txt',
+        #r'../00_Resources/Instances/MR_Instance/Instanz1-1.33-1.33-SZ15Multi1.5Veh_cap1.txt',
         #r'../00_Resources/Instances/MR_Instance/Instanz1-0.75-0.75-SZ15Multi1Veh_cap1.txt',
         #r'../00_Resources/Instances/MR_Instance/Instanz1-0.75-0.75-SZ15Multi1.2Veh_cap1.txt',
-        #r'../00_Resources/Instances/MR_Instance/Instanz1-0.75-0.75-SZ15Multi1.5Veh_cap1.txt',
+        #r'../00_Resources/Instances/MR_Instance/Instanz1-100-100-SZ15Multi1Veh_cap1.txt',
+        #r'../00_Resources/Instances/MR_Instance/Instanz1-100-100-SZ15Multi1.2Veh_cap1.txt',
+        r'../00_Resources/Instances/MR_Instance/Instanz0.5-100-100-SZ15Multi1Veh_cap1.txt',
+        r'../00_Resources/Instances/MR_Instance/Instanz0.5-100-100-SZ15Multi1.2Veh_cap1.txt',
 
     ]
     instance_name_array = []
@@ -89,7 +93,7 @@ if __name__ == "__main__":
 
         #instfile = r'C:\Users\Thomas\PycharmProjects\Masterarbeit\Resources\Version_2\Milkruns\Instanzen -3\5b-5-3-300.txt'
         dimafile = r"../00_Resources/Matrices/TK_matrizen_0-100-100.txt"
-        colnumber, solvingtime, obj_value = runtcpvrp(instfile, suchzeit_heu, maxAllowedStops, dimafile= dimafile,heuristicColumn_gen =heuristicColumn_gen, lösungszeit = lösungszeit)
+        colnumber, solvingtime, obj_value = runtcpvrp(instfile, searchtime_heuristic_col_gen, max_allowed_stops_complet_col_gen, dimafile= dimafile, heuristicColumn_gen =heuristic_col_gen_bool, lösungszeit = max_searchtime_TCVRP, mrOnly = mrOnly)
 
         instance_name_array.append(instfile.split("/")[-1])
         col_numer_array.append(colnumber)
@@ -100,15 +104,15 @@ if __name__ == "__main__":
                                           "Col. Anzahl": [colnumber],
                                           "Dauer": [solvingtime],
                                           "Zielfunktionswert": [obj_value],
-                                          "heuristic_Column_gen":[heuristicColumn_gen],
-                                          "heuristic_Column_gen":[heuristicColumn_gen],
-                                          "heuristic_Dauer": [suchzeit_heu],
-                                          "vollst_max_Stops": [maxAllowedStops],
-                                          "lösungszeitlimit": [lösungszeit],
+                                          "heuristic_Column_gen":[heuristic_col_gen_bool],
+                                          "heuristic_Column_gen":[heuristic_col_gen_bool],
+                                          "heuristic_Dauer": [searchtime_heuristic_col_gen],
+                                          "vollst_max_Stops": [max_allowed_stops_complet_col_gen],
+                                          "lösungszeitlimit": [max_searchtime_TCVRP],
                                           })
         print(df_solutions)
         df_solutions.to_csv(
-            r"../00_Resources/Instances/Results"+ instfile.split("/")[-1].split(".t")[0]+ "_"+str(maxAllowedStops)+"_"+ str(suchzeit_heu)+"_"+ str(lösungszeit) +".csv",
+            r"../00_Resources/Instances/Results" + instfile.split("/")[-1].split(".t")[0] + "_" + str(max_allowed_stops_complet_col_gen) + "_" + str(searchtime_heuristic_col_gen) + "_" + str(max_searchtime_TCVRP) + ".csv",
             encoding="latin_1", sep=";")
 
 

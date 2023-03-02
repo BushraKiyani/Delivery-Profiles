@@ -35,11 +35,11 @@ def write_txt(df_nodes, df_vehicles, df_instance,var_gew, var_freq, servicetime,
 
 
 if __name__ == '__main__':
-    multi = 1.5
+    multi = 1.2
 
-    var_gew = 1.33
-    var_freq = 1.33
-    min_freq = 1
+    var_gew = 100
+    var_freq = 100
+    min_freq = 0.5
 
     veh_cap = 1
 
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     veh_price_per_min = [round(i * multi,4) for i in veh_price_per_min]
 
     veh_price_per_charge = [0.155, 0.155, 0.155]
-    veh_price_per_charge = [round(i * multi,4) for i in veh_price_per_charge]
+    veh_price_per_charge = [round(i * 1,4) for i in veh_price_per_charge]
 
     df_vehicles = pd.DataFrame(data={"veh_ID_array":veh_ID_array,"veh_num_array":veh_num_array, "veh_dist_array":veh_dist_array,"veh_cap_array":veh_cap_array, "veh_price_per_km":veh_price_per_km, "veh_price_per_min":veh_price_per_min,"veh_price_per_charge":veh_price_per_charge})
     print(df_vehicles.dtypes)
