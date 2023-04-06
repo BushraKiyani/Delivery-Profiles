@@ -6,6 +6,7 @@ import ast
 
 
 
+# Maps
 def load_map(m,profil_kund, depot_coord):
     folium.Marker(
     location=depot_coord,
