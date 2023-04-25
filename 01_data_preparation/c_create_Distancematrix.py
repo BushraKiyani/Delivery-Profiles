@@ -33,7 +33,7 @@ def round_sort_coordinates(file_path):
         locations = json.load(f)
 
     # Use map and lambda function to round off the latitude and longitude values
-    locations = list(map(lambda loc: {'Empfänger_id': loc['Empfänger_id'], 'latitude': round(float(loc['latitude']), 4), 'longitude': round(float(loc['longitude']), 4)}, locations))
+    locations = list(map(lambda loc: {'Empfänger_id': loc['Empfänger_id'], 'latitude': round(float(loc['latitude']), 6), 'longitude': round(float(loc['longitude']), 6)}, locations))
 
     # Extract unique ids using set comprehension and sort the list of dictionaries by the "Empfänger_id" key
     sorted_locations = sorted({loc['Empfänger_id']:loc for loc in locations}.values(), key=lambda x: x["Empfänger_id"])
