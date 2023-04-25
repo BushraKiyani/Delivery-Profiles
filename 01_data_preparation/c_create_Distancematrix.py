@@ -2,8 +2,9 @@ import pandas as pd
 import requests
 import numpy as np
 import time
-from geopy.distance import lonlat, distance
+#from geopy.distance import lonlat, distance
 import math
+import json
 
 def create_matrix_eukl(df_coordinates_list, factor = 1.4):
     df_koordinaten_geopy = df_coordinates_list.copy()
