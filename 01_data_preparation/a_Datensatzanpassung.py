@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 import textdistance as td
 import requests
+import json
+import re
+import roman
 
 def change_Columnname(df):
     df = df.rename(columns= {"ERP - Transport": "Transport",
@@ -238,6 +241,106 @@ def calc_period(df_touren):
     df_touren["Periode"] = perioden_array
     return df_touren
 
+# Splits Street number and House number
+def split_street_and_number(s):
+    parts = s.split()
+    Haus = ""
+    Straße = ""
+    for part in parts:
+        if any(char.isdigit() for char in part):
+            Haus += part + " "
+        else:
+            Straße += part + " "
+    Haus.strip()
+    Straße.strip()
+    return pd.Series([Straße, Haus])
+
+# Removes "AM" and "IM" Prefixes
+def remove_prefix(row):
+    return re.sub(r'^(AM|IM)\s+', '', row['Straße_Empfänger'])
+
+
+# Replaces Roman numerals with integers (II LEEGMOORWEG with 2 LEEGMOORWEG  )
+def replace_roman_numerals(value):
+    match = re.match(r'^(I{1,3})(\.?)\s+', value)
+    if match:
+        roman_numeral = match.group(1)
+        point = match.group(2)
+        return value.replace(roman_numeral + point, str(roman.fromRoman(roman_numeral)) + point)
+    else:
+        return value
+
+# Replaces dash with space
+def replace_dash_with_space(row):
+    return row['Straße_Empfänger'].replace('-', ' ')
+
+# Splits the Stadt_Empfänger column on '/' and keeps the value before slash
+def split_on_slash(row):
+    split_df = row['Stadt_Empfänger'].split('/', 1)
+    return split_df[0]
+
+# Splits the Haus_Empfänger column on '-' or '+', and keeps the first part before the '-' or '+'
+def split_on_dash_or_plus(row):
+    split_result = re.split(r'[-+]', row['Haus_Empfänger'])
+    return split_result[0]
+
+# Gets the coordinates using the Nominatim geocoding API
+def get_receiver_coordinates(row):
+    address = f"{row['Straße_Empfänger']}, {row['PLZ_Empfänger']}"
+    url = f"https://asca-rest.lfo.tu-dortmund.de/nominatim/search.php?q={address}&format=jsonv2"
+    response = requests.get(url)
+    data = response.json()
+    if len(data) > 0:
+        coordinates = {
+            "Empfänger_id": row['ID_Empfänger'],
+            "longitude": data[0]['lon'],
+            "latitude": data[0]['lat'],
+        }
+        return coordinates
+    return None
+
+# Writes Coordinates in a JSON file named as 'Koordinatenliste.json'
+def write_coordinates_to_file(coordinates_list):
+    # convert the coordinates list to a JSON string
+    json_string = json.dumps(coordinates_list)
+
+    # write the JSON string to a file
+    with open('Koordinatenliste.json', 'w') as f:
+        f.write(json_string)
+
+# gets and writes the receiver coordinates using get_receiver_coordinates() and
+# write_coordinates_to_file() functions
+def get_and_write_receiver_coordinates(df):
+    coordinates_list = df.apply(get_receiver_coordinates, axis=1).tolist()
+    coordinates_list = [x for x in coordinates_list if x is not None]
+    write_coordinates_to_file(coordinates_list)
+    return coordinates_list
+# Adds coordinates to the dataframe
+def add_coordinates_to_df(lon_lat_list, df, sender_lon, sender_lat):
+    """
+    Takes a list of longitude and latitude values, a DataFrame with receiver ID and address information,
+    and the sender's fixed longitude and latitude values. Adds the longitude and latitude to the corresponding
+    rows in the DataFrame for each receiver address.
+    """
+    def update_row(row):
+        Empfänger_ID = row['ID_Empfänger']
+        Empfänger_lon, Empfänger_lat = None, None
+        empfänger_coords = list(filter(lambda x: x['Empfänger_id'] == Empfänger_ID, lon_lat_list))
+        if len(empfänger_coords) > 0:
+            empfänger_coords = empfänger_coords[0]
+            Empfänger_lon = empfänger_coords['longitude']
+            Empfänger_lat = empfänger_coords['latitude']
+
+        row['Empfänger_lon'] = Empfänger_lon
+        row['Empfänger_lat'] = Empfänger_lat
+        row['Absender_lon'] = sender_lon
+        row['Absender_lat'] = sender_lat
+        return row
+    df = df.apply(update_row, axis=1)
+    df[['Empfänger_lon', 'Empfänger_lat']] = df[['Empfänger_lon', 'Empfänger_lat']].astype(float).round(6)
+    return df
+
+
 if __name__ == "__main__":
     df_rohdaten = pd.read_csv('../00_Resources/Grunddaten/Rohdaten_TK.csv', encoding="latin-1", sep=";", dtype={"Empf. Plz": object, "Empf. Straße": object})
 
@@ -291,4 +394,39 @@ if __name__ == "__main__":
     #               sep=";", encoding="latin1", decimal=".")
 
     df_rohdaten.to_csv(path_or_buf=r"../00_Resources/Grunddaten/Datensatz_TK_bereinigt.csv",
-                       sep=";", encoding="latin1", decimal=".")
+                      sep=";", encoding="latin1", decimal=".")
+    ########################################################################################
+    # Load the file rohdaten
+    rohdaten = pd.read_csv(r"../00_Resources/Rohdaten.csv", encoding="latin_1", sep=";", decimal=',')
+    # Split Street and House number
+    rohdaten[['Straße_Empfänger', 'Haus_Empfänger']] = rohdaten['Straße_Empfänger'].apply(split_street_and_number)
+    # Remove "AM" and "IM" Prefixes
+    rohdaten['Straße_Empfänger'] = rohdaten.apply(remove_prefix, axis=1)
+    # Replace Roman numerals with integers (II LEEGMOORWEG with 2 LEEGMOORWEG  )
+    rohdaten['Straße_Empfänger'] = rohdaten['Straße_Empfänger'].apply(replace_roman_numerals)
+    # Replace dash with space in Straße_Empfänger
+    rohdaten['Straße_Empfänger'] = rohdaten.apply(replace_dash_with_space, axis=1)
+    # Split the Stadt_Empfänger column on '/'
+    rohdaten['Stadt_Empfänger'] = rohdaten.apply(split_on_slash, axis=1)
+    # Split the Haus_Empfänger column on '-' or '+', and keep the first part before the '-' or '+'
+    rohdaten['Haus_Empfänger'] = rohdaten.apply(split_on_dash_or_plus, axis=1)
+    # Replace 'GROSSENKETEN' with 'GROSSENKNETEN' in the Stadt_Empfänger column (Exact Change in Street One name)
+    rohdaten['Stadt_Empfänger'] = rohdaten['Stadt_Empfänger'].replace('GROSSENKETEN', 'GROSSENKNETEN')
+    # Replace '4824' with '04824' in the PLZ_Empfänger column (Exact change in one Postal Code)
+    rohdaten['PLZ_Empfänger'] = rohdaten['PLZ_Empfänger'].replace('4824 ', '04824 ')
+    # Save updated file as "Pre-Processed-data.csv"
+    rohdaten.to_csv(path_or_buf=r"../00_Resources/Grunddaten/Pre-Processed-data.csv", sep=";", encoding="latin1",
+                    decimal=".", index=False)
+    # Load the pre-processed file
+    data_processed = pd.read_csv(r"../00_Resources/Grunddaten/Pre-Processed-data.csv", encoding="latin_1", sep=";",
+                                 decimal=',')
+    # Get Unique data according to ID_Empfänger (For getting coordinates once per ID_Empfänger)
+    unique_data_processed = data_processed.drop_duplicates(subset=['ID_Empfänger'])
+    # Get Coordinates
+    cor = get_and_write_receiver_coordinates(unique_data_processed)
+    # Add Coordinates to the dataframe
+    data_processed = add_coordinates_to_df(cor, data_processed, 9.337200, 53.124339)
+    # Save the file as "added_Koordinaten.csv"
+    data_processed.to_csv(path_or_buf=r"../00_Resources/Grunddaten/added_Koordinaten.csv", sep=";", encoding="latin1",
+                          decimal=".", index=False)
+
