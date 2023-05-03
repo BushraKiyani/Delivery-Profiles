@@ -2,9 +2,10 @@ import pandas as pd
 import requests
 import numpy as np
 import time
-#from geopy.distance import lonlat, distance
+from geopy.distance import lonlat, distance
 import math
 import json
+from scipy.spatial.distance import cdist
 
 def create_matrix_eukl(df_coordinates_list, factor = 1.4):
     df_koordinaten_geopy = df_coordinates_list.copy()
@@ -28,20 +29,21 @@ def create_matrix_eukl(df_coordinates_list, factor = 1.4):
     dist_matrix_eukl = dist_matrix_eukl.apply(pd.to_numeric, errors='coerce', axis=1)
     return dist_matrix_eukl
 
-# round the coordinates upto 6 decimal places, extract unique ids and sort according to Empfänger_id
+# round the coordinates upto 6 decimal places, and sort according to Empfänger_id
 def round_sort_coordinates(file_path):
     with open(file_path) as f:
         locations = json.load(f)
 
     # Use map and lambda function to round off the latitude and longitude values
-    locations = list(map(lambda loc: {'Empfänger_id': loc['Empfänger_id'], 'latitude': round(float(loc['latitude']), 6), 'longitude': round(float(loc['longitude']), 6)}, locations))
+    locations = list(map(lambda loc: {'Empfänger_id': loc['Empfänger_id'], 'latitude': round(float(loc['latitude']), 6),
+                                      'longitude': round(float(loc['longitude']), 6)}, locations))
 
     # Extract unique ids using set comprehension and sort the list of dictionaries by the "Empfänger_id" key
     sorted_locations = sorted({loc['Empfänger_id']:loc for loc in locations}.values(), key=lambda x: x["Empfänger_id"])
 
     return sorted_locations
 
-# Get distances and durations via OSRM API call, return and save separate distance/duration matrices.
+# Gets the distances and the durations via OSRM API call, return and save separate distance/duration matrices.
 def calculate_distances_durations(sorted_locations, chunk_size=100):
     base_url = "https://asca-rest.lfo.tu-dortmund.de/osrm/table/v1/driving/"
     params = {"annotations": "distance,duration"}  # get distances and durations
@@ -90,24 +92,57 @@ def calculate_distances_durations(sorted_locations, chunk_size=100):
 
     return distances, durations
 
+
+"""Takes Sorted Coordinates JSON file and Output file Path+Name, Calculates the Euclidean distances save the file in specified
+ location with the provided name and returns the Euclidean distance matrix"""
+def calculate_euclidean_distance_matrix(sorted_json_file, output_csv_file):
+    # Load JSON data into a pandas DataFrame
+    df = pd.json_normalize(sorted_json_file)
+
+    # Convert latitude and longitude columns to floats
+    df[['latitude', 'longitude']] = df[['latitude', 'longitude']].astype(float)
+
+    # Extract latitude and longitude columns into a NumPy array
+    coordinates = df[['latitude', 'longitude']].to_numpy()
+
+    # Calculate Euclidean distance matrix using scipy.spatial.distance.cdist
+    Euc_distance_matrix = cdist(coordinates, coordinates)
+
+    # Convert the distance matrix back to a pandas DataFrame
+    Euc_distance_matrix = pd.DataFrame(Euc_distance_matrix)
+
+    # Save the distance matrix to a CSV file
+    Euc_distance_matrix.to_csv(path_or_buf=output_csv_file, sep=";", encoding="latin1",
+                               decimal=".", index=False)
+    return Euc_distance_matrix
+
 if __name__ == "__main__":
-    ##df_coordinates_list = pd.read_csv(
-       ## r"../00_Resources/Grunddaten/Profilkunden_Koordinaten.csv",
-        ##encoding="latin-1", sep=";", dtype={"ID_Empfänger":object, "lat": float,"lon": float})
+    df_coordinates_list = pd.read_csv(
+       r"../00_Resources/Grunddaten/Profilkunden_Koordinaten.csv",
+        encoding="latin-1", sep=";", dtype={"ID_Empfänger":object, "lat": float,"lon": float})
 
-    ##df_coordinates_list = df_coordinates_list[["ID_Empfänger", "lat", "lon"]]
-    ##df_versandzentrum = {"ID_Empfänger":"Depot","lat":48.13635891257301,"lon":11.62868820669951}
-    ##df_coordinates_list = df_coordinates_list.append(df_versandzentrum, ignore_index=True)
+    df_coordinates_list = df_coordinates_list[["ID_Empfänger", "lat", "lon"]]
+    df_versandzentrum = {"ID_Empfänger":"Depot","lat":48.13635891257301,"lon":11.62868820669951}
+    df_coordinates_list = df_coordinates_list.append(df_versandzentrum, ignore_index=True)
 
-    ##dist_matrix_eukl = create_matrix_eukl(df_coordinates_list, 1.4)
-    ##dist_matrix_eukl.to_csv(path_or_buf=r"../00_Resources/Grunddaten/distance_matrix_eukl.csv", index=True, sep=";",
-                            ##encoding="latin1",decimal=".")
-    ##dist_matrix_eukl.to_csv(path_or_buf=r"../00_Resources/Grunddaten/distance_matrix_eukl_EU.csv", index=True, sep=";",
-                            ##encoding="latin1", decimal=",")
+    dist_matrix_eukl = create_matrix_eukl(df_coordinates_list, 1.4)
+    dist_matrix_eukl.to_csv(path_or_buf=r"../00_Resources/Grunddaten/distance_matrix_eukl.csv", index=True, sep=";",
+                            encoding="latin1",decimal=".")
+    dist_matrix_eukl.to_csv(path_or_buf=r"../00_Resources/Grunddaten/distance_matrix_eukl_EU.csv", index=True, sep=";",
+                            encoding="latin1", decimal=",")
+    ###############################################################################################################
+    # load the Coordinates JSON file
     file_path = "../01_data_preparation/Koordinatenliste.json"
+    # Round the Coordinates and Sort according to Empfänger_id
     sorted_locations = round_sort_coordinates(file_path)
+    # Get distances and durations from OSRM
     distances, durations = calculate_distances_durations(sorted_locations)
-    print(distances, durations)
+    # Select Euclidean distance output file name and location
+    output_euc_file = "../00_Resources/Matrices/EUC_Distanzmatrix.csv"
+    # Get Euclidean distance matrix
+    euclidean = calculate_euclidean_distance_matrix(sorted_locations, output_euc_file)
+    # Print real distance, duration and euclidean distance Matrices
+    print(distances, durations, euclidean)
 
 
 
