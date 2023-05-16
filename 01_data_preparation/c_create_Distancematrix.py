@@ -85,17 +85,26 @@ def calculate_distances_durations(sorted_locations, chunk_size=100):
             durations.loc[chunk1[0]["Empfänger_id"]:chunk1[-1]["Empfänger_id"],
                           chunk2[0]["Empfänger_id"]:chunk2[-1]["Empfänger_id"]] = chunk_durations
 
-    distances.to_csv(path_or_buf=r"../00_Resources/Matrices/Real_Distanzmatrix.csv", sep=";", encoding="latin1",
-                   decimal=".", index=False)
-    durations.to_csv(path_or_buf=r"../00_Resources/Matrices/Real_Fahrzeitmatrix.csv", sep=";", encoding="latin1",
-                   decimal=".", index=False)
+    matrix = distances.values
+    symmetric_matrix = np.triu(matrix) + np.triu(matrix, 1).T
+    distances = pd.DataFrame(symmetric_matrix, index=distances.index, columns=distances.columns)
+
+    matrix1 = durations.values
+    symmetric_matrix1 = np.triu(matrix1) + np.triu(matrix1, 1).T
+    durations = pd.DataFrame(symmetric_matrix1, index=durations.index, columns=durations.columns)
+
+    distances.to_csv(path_or_buf=r"../00_Resources/Matrices/Real_Distanzmatrix.csv", sep=",", encoding="latin1",
+                    decimal=".", index=True)
+    durations.to_csv(path_or_buf=r"../00_Resources/Matrices/Real_Durationsmatrix.csv", sep=",", encoding="latin1",
+                    decimal=".", index=True)
 
     return distances, durations
 
 
+
 """Takes Sorted Coordinates JSON file and Output file Path+Name, Calculates the Euclidean distances save the file in specified
  location with the provided name and returns the Euclidean distance matrix"""
-def calculate_euclidean_distance_matrix(sorted_json_file, output_csv_file):
+def calculate_euclidean_distance_matrix(sorted_json_file):
     # Load JSON data into a pandas DataFrame
     df = pd.json_normalize(sorted_json_file)
 
@@ -109,12 +118,46 @@ def calculate_euclidean_distance_matrix(sorted_json_file, output_csv_file):
     Euc_distance_matrix = cdist(coordinates, coordinates)
 
     # Convert the distance matrix back to a pandas DataFrame
-    Euc_distance_matrix = pd.DataFrame(Euc_distance_matrix)
+    Euc_distance_matrix = pd.DataFrame(Euc_distance_matrix, columns=df['Empfänger_id'], index=df['Empfänger_id'])
 
     # Save the distance matrix to a CSV file
-    Euc_distance_matrix.to_csv(path_or_buf=output_csv_file, sep=";", encoding="latin1",
-                               decimal=".", index=False)
+    Euc_distance_matrix.to_csv(path_or_buf=r"../00_Resources/Matrices/Euklidische_Distanzmatrix.csv", sep=",", encoding="latin1",
+                               decimal=".", index=True)
     return Euc_distance_matrix
+
+# returns combined table of all distances and save it in Matrices folder as Combined_Matrixtable.csv
+def create_row(start_id, end_id, euclidean, distances, durations):
+    if start_id != end_id:
+        real_distance = distances.at[start_id, end_id]
+        duration = durations.at[start_id, end_id]
+        euclidean_distance = euclidean.at[start_id, end_id]
+
+        return {
+            'Start': start_id,
+            'End': end_id,
+            'Real': real_distance,
+            'Duration': duration,
+            'Euclidean': euclidean_distance
+        }
+    return None
+
+def create_table(euclidean, distances, durations):
+    empfanger_ids = euclidean.columns
+    accumulator = []
+
+    for start_id in empfanger_ids:
+        for end_id in empfanger_ids:
+            if start_id < end_id:
+                row = create_row(start_id, end_id, euclidean, distances, durations)
+                if row:
+                    accumulator.append(row)
+
+    result = pd.DataFrame(accumulator)
+    # Save the table to a CSV file
+    result.to_csv(path_or_buf=r"../00_Resources/Matrices/Combined_Matrixtable.csv", sep=",", encoding="latin1",
+                  decimal=".", index=True)
+    return result
+
 
 if __name__ == "__main__":
     df_coordinates_list = pd.read_csv(
@@ -137,12 +180,12 @@ if __name__ == "__main__":
     sorted_locations = round_sort_coordinates(file_path)
     # Get distances and durations from OSRM
     distances, durations = calculate_distances_durations(sorted_locations)
-    # Select Euclidean distance output file name and location
-    output_euc_file = "../00_Resources/Matrices/EUC_Distanzmatrix.csv"
     # Get Euclidean distance matrix
-    euclidean = calculate_euclidean_distance_matrix(sorted_locations, output_euc_file)
-    # Print real distance, duration and euclidean distance Matrices
-    print(distances, durations, euclidean)
+    euclidean = calculate_euclidean_distance_matrix(sorted_locations)
+    # Table of all distances
+    distance_table = create_table(euclidean, distances, durations)
+    # Print real distance, duration, Euclidean distance Matrices and Distances Table
+    print(distances, durations, euclidean, distance_table)
 
 
 
