@@ -84,18 +84,18 @@ def calculate_distances_durations(sorted_locations, chunk_size=100):
                           chunk2[0]["Empfänger_id"]:chunk2[-1]["Empfänger_id"]] = chunk_distances
             durations.loc[chunk1[0]["Empfänger_id"]:chunk1[-1]["Empfänger_id"],
                           chunk2[0]["Empfänger_id"]:chunk2[-1]["Empfänger_id"]] = chunk_durations
-
+    # Get Symmetric distance Matrix
     matrix = distances.values
     symmetric_matrix = np.triu(matrix) + np.triu(matrix, 1).T
     distances = pd.DataFrame(symmetric_matrix, index=distances.index, columns=distances.columns)
-
+    # Get Symmetric duration Matrix
     matrix1 = durations.values
     symmetric_matrix1 = np.triu(matrix1) + np.triu(matrix1, 1).T
     durations = pd.DataFrame(symmetric_matrix1, index=durations.index, columns=durations.columns)
 
-    distances.to_csv(path_or_buf=r"../00_Resources/Matrices/Real_Distanzmatrix.csv", sep=",", encoding="latin1",
+    distances.to_csv(path_or_buf=r"../00_Resources/Matrices/Real_Distanzmatrix.csv", sep=",",
                     decimal=".", index=True)
-    durations.to_csv(path_or_buf=r"../00_Resources/Matrices/Real_Durationsmatrix.csv", sep=",", encoding="latin1",
+    durations.to_csv(path_or_buf=r"../00_Resources/Matrices/Real_Durationsmatrix.csv", sep=",",
                     decimal=".", index=True)
 
     return distances, durations
@@ -121,8 +121,7 @@ def calculate_euclidean_distance_matrix(sorted_json_file):
     Euc_distance_matrix = pd.DataFrame(Euc_distance_matrix, columns=df['Empfänger_id'], index=df['Empfänger_id'])
 
     # Save the distance matrix to a CSV file
-    Euc_distance_matrix.to_csv(path_or_buf=r"../00_Resources/Matrices/Euklidische_Distanzmatrix.csv", sep=",", encoding="latin1",
-                               decimal=".", index=True)
+    Euc_distance_matrix.to_csv(path_or_buf=r"../00_Resources/Matrices/Euklidische_Distanzmatrix.csv", sep=",", decimal=".", index=True)
     return Euc_distance_matrix
 
 # returns combined table of all distances and save it in Matrices folder as Combined_Matrixtable.csv
@@ -154,8 +153,8 @@ def create_table(euclidean, distances, durations):
 
     result = pd.DataFrame(accumulator)
     # Save the table to a CSV file
-    result.to_csv(path_or_buf=r"../00_Resources/Matrices/Combined_Matrixtable.csv", sep=",", encoding="latin1",
-                  decimal=".", index=True)
+    result.to_csv(path_or_buf=r"../00_Resources/Matrices/Combined_Matrixtable.csv", sep=",",
+                  decimal=".", index=False)
     return result
 
 
