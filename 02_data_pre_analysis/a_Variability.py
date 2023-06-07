@@ -212,6 +212,59 @@ def diagramm_3d_barplot(dz):
     plt.savefig(r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variabilitätsklassen.pdf", dpi=2000)
 
     #plt.show()
+########################################################################################
+
+def auswertung_nach_KW1(df_touren):
+
+    df_gewicht = df_touren.groupby(["Kalenderwoche", "ID_Empfänger"])["Gewicht"].sum().unstack()
+    df_frequenz = df_touren.groupby(["Kalenderwoche", "ID_Empfänger"])["Gewicht"].count().unstack()
+# add 0 where df_gewicht and df_frequenz have NaN values
+    df_frequenz = df_frequenz.fillna(0)
+    df_gewicht = df_gewicht.fillna(0)
+
+    df_frequenz = df_frequenz.astype(float)
+    df_gewicht = df_gewicht.astype(float)
+
+    df_frequenz.to_csv(
+        r"../00_Resources/pre_Analysis/Variabilitätsauswertung/frequenz_pro_woche.csv",
+        encoding="latin_1", sep=";")
+    df_gewicht.to_csv(
+       r"../00_Resources/pre_Analysis/Variabilitätsauswertung/gewicht_pro_woche.csv",
+        encoding="latin_1", sep=";")
+
+    return df_frequenz, df_gewicht
+def variabilitätsauswertung1(df_frequenz, df_gewicht, df_touren):
+    df_auswertung = pd.DataFrame(index=df_touren["ID_Empfänger"].unique())
+
+    df_auswertung["avg_Gewicht"] = df_gewicht.mean()
+    df_auswertung["avg_Frequenz"] = df_frequenz.mean()
+
+    df_auswertung["std_Gewicht"] = df_gewicht.std()
+    df_auswertung["std_Frequenz"] = df_frequenz.std()
+
+    df_auswertung["variability_Gewicht"] = df_auswertung["std_Gewicht"] / df_auswertung["avg_Gewicht"]
+    df_auswertung["variability_Frequenz"] = df_auswertung["std_Frequenz"] / df_auswertung["avg_Frequenz"]
+
+    df_auswertung["sum_Frachtkosten"] = df_touren.groupby("ID_Empfänger")["Frachtkosten"].sum()
+    df_auswertung["count_Sendungen"] = df_touren.groupby("ID_Empfänger")["Frachtkosten"].count()
+    df_auswertung["sum_Gewicht"] = df_touren.groupby("ID_Empfänger")["Gewicht"].sum()
+
+    #df_auswertung["Profilkunde"] = True
+
+    df_auswertung = df_auswertung.astype({'avg_Gewicht': 'float64',
+                                          'avg_Frequenz': 'float64',
+                                          'std_Gewicht': 'float64',
+                                          'std_Frequenz': 'float64',
+                                          'variability_Gewicht': 'float64',
+                                          'variability_Frequenz': 'float64'})
+
+    df_auswertung.to_csv(r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variabilitätsauswertung.csv",
+                         encoding="latin_1", sep=";", index_label="ID_Empfänger")
+    #df_auswertung.to_csv(r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variabilitätsauswertung_EU.csv",
+                         #encoding="latin_1", sep=";", index_label="ID_Empfänger", decimal=',')
+
+    return df_auswertung
+
 
 if __name__ == '__main__':
     state = None
@@ -227,7 +280,7 @@ if __name__ == '__main__':
     #                        encoding="latin_1", sep=";")
 
     df_touren_all["Beladedatum"] = pd.to_datetime(df_touren_all["Beladedatum"], dayfirst=True)
-    df_touren_all["Kalenderwoche"] = df_touren_all["Beladedatum"].dt.week
+    df_touren_all["Kalenderwoche"] = df_touren_all["Beladedatum"].dt.isocalendar().week  # Added isocalender
 
     if state == None or years == None:
         for date in hd.DEU(state="SL", years=2020): #Wochen mit Feiertagen aussortieren
@@ -237,6 +290,27 @@ if __name__ == '__main__':
 
     df_auswertung = variabilitätsauswertung(df_frequenz, df_gewicht)
 
-    df_borders, data_kundenanzahl = anteile_nach_varklassen(df_auswertung)
+####################################################################################################
+# Open the file
+data = pd.read_csv(r"../00_Resources/Grunddaten/added_Koordinaten.csv", encoding="latin_1", sep=";", decimal=',')
+# Convert "Beladedatum" column to datetime format
+data["Beladedatum"] = pd.to_datetime(data["Beladedatum"], format="%d.%m.%Y")
+# Extract week number using strftime and write to new column "Kalenderwoche"
+data["Kalenderwoche"] = data["Beladedatum"].dt.strftime("%U")
 
-    diagramm_3d_barplot(data_kundenanzahl)
+# Clean and convert the "Gewicht" column to numeric
+#data["Gewicht"] = pd.to_numeric(data["Gewicht"], errors="coerce")
+# Calculate the mean of the "Gewicht" column
+#mean_value = data["Gewicht"].mean()
+# Fill NA values in "Gewicht" column with the mean
+#data["Gewicht"].fillna(mean_value, inplace=True)
+
+# Clean and convert the "Frachtkosten" column to numeric
+#data["Frachtkosten"] = pd.to_numeric(data["Frachtkosten"], errors="coerce")
+#Calculate the mean of the "Frachtkosten" column
+#mean_value = data["Frachtkosten"].mean()
+#Fill NA values in "Frachtkosten" column with the mean
+#data["Frachtkosten"].fillna(mean_value, inplace=True)
+
+df_frequenz, df_gewicht = auswertung_nach_KW1(data)
+df_auswertung1 = variabilitätsauswertung1(df_frequenz, df_gewicht, data)
