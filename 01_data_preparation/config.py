@@ -1,0 +1,50 @@
+# config.py
+
+# Sender's Coordinates
+sender_lon = 9.3372
+sender_lat = 53.124339
+
+# Processed data Path
+data_path = r"../00_Resources/Grunddaten/preprocessed_data1.csv"
+# Transport matrix path
+transport_price_path = r"../00_Resources/Transportpreismatrix_TK.csv"
+# Adding coordinates
+json_coordinate_list_path = r"../00_Resources/Grunddaten/coordinates_list.json"
+df_coordinates_path = r"../00_Resources/Grunddaten/added_coordinates.csv"
+
+# Adding distances
+chunk_size = 100
+distances_path_C = r"../00_Resources/Matrices/Real_Distanzmatrix.csv"
+duration_path_C = r"../00_Resources/Matrices/Real_Durationsmatrix.csv"
+euk_distance_path_C = "../00_Resources/Matrices/Euclidean_Distancematrix.csv"
+matrix_table_path_C = r"../00_Resources/Matrices/Combined_Matrixtable.csv"
+distances_path_S =  r"../00_Resources/Matrices/Real_Distances_Sender.csv"
+duration_path_S = r"../00_Resources/Matrices/Durations_Sender.csv"
+euk_distance_path_S = r"../00_Resources/Matrices/Euclidean_Distance_Sender.csv"
+df_distance_path = r"../00_Resources/Grunddaten/df_added_distances.csv"
+
+# Freight cost calculations
+column_name = 'Frachtkosten' # Name of the column where freight cost will be saved in the dataset
+df_freightcost_path = "../00_Resources/Grunddaten/df_added_freightcost.csv"
+
+# Variability Evaluation
+df_frequency_path = r"../00_Resources/pre_Analysis/Variabilitätsauswertung/frequenz_per_week.csv"
+df_weight_path = r"../00_Resources/pre_Analysis/Variabilitätsauswertung/weight_per_week.csv"
+variability_path = r"../00_Resources/pre_Analysis/Variabilitätsauswertung/variability_evaluation.csv"
+variability_path_EU = r"../00_Resources/pre_Analysis/Variabilitätsauswertung/variability_evaluation_EU.csv"
+
+# Profle assigmnet parameters
+var_weight = 1.33
+var_frequency = 1.33
+min_frequency = 0.5
+
+# Profiles assignment paths
+save_path_special = "var_gewicht" + str(var_weight) + "_var_frequenz" + str(
+    var_frequency) + "_mindest_frequenz" + str(min_frequency)
+# Setting up the path to files
+save_path_base = r"../00_Resources/profile_results"
+
+
+new_freightcost_path = "../00_Resources/Grunddaten/df_recal_freightcost.csv"
+
+

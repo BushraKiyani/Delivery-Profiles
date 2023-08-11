@@ -1,0 +1,2 @@
+;Instanz;Col. Anzahl;Dauer;Zielfunktionswert;heuristic_Column_gen;heuristic_Dauer;vollst_max_Stops;lösungszeitlimit
+0;Instanz1-0.75-0.75-SZ15Multi1.2Veh_cap1.txt;31;1800.2440032958984;1595.2554117500001;True;600;3;1800

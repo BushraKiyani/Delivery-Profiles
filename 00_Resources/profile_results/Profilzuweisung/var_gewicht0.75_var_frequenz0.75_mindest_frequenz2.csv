@@ -1,0 +1,4 @@
+;ID_Empfänger;Frequenz;Nachfrage;Pattern;Pattern_clear
+0;1016;2;6976;0;[1, 0, 1, 0, 0]
+1;1062;3;790;0;[0, 1, 0, 1, 1]
+2;1236;2;2512;4;[0, 1, 0, 0, 1]

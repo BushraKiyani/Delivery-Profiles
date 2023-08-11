@@ -214,40 +214,46 @@ def diagramm_3d_barplot(dz):
     #plt.show()
 ########################################################################################
 
-def auswertung_nach_KW1(df_touren):
+def evaluation_after_KW1(df, df_frequency_path, df_weight_path):
 
-    df_gewicht = df_touren.groupby(["Kalenderwoche", "ID_Empfänger"])["Gewicht"].sum().unstack()
-    df_frequenz = df_touren.groupby(["Kalenderwoche", "ID_Empfänger"])["Gewicht"].count().unstack()
+    df["Gewicht"] = pd.to_numeric(df["Gewicht"], errors="coerce")
+    df_weight = df.groupby(["Kalenderwoche", "ID_Empfänger"])["Gewicht"].sum().unstack()
+    df_frequenz = df.groupby(["Kalenderwoche", "ID_Empfänger"])["Gewicht"].count().unstack()
 # add 0 where df_gewicht and df_frequenz have NaN values
     df_frequenz = df_frequenz.fillna(0)
-    df_gewicht = df_gewicht.fillna(0)
+    df_weight = df_weight.fillna(0)
 
     df_frequenz = df_frequenz.astype(float)
-    df_gewicht = df_gewicht.astype(float)
+    df_weight = df_weight.astype(float)
 
     df_frequenz.to_csv(
-        r"../00_Resources/pre_Analysis/Variabilitätsauswertung/frequenz_pro_woche.csv",
+        df_frequency_path,
         encoding="latin_1", sep=";")
-    df_gewicht.to_csv(
-       r"../00_Resources/pre_Analysis/Variabilitätsauswertung/gewicht_pro_woche.csv",
+    df_weight.to_csv(
+       df_weight_path,
         encoding="latin_1", sep=";")
+    print(f"Frequencies and weights have been calculated and saved in: {df_frequency_path} and {df_weight_path}")
 
-    return df_frequenz, df_gewicht
-def variabilitätsauswertung1(df_frequenz, df_gewicht, df_touren):
-    df_auswertung = pd.DataFrame(index=df_touren["ID_Empfänger"].unique())
+    return df_frequenz, df_weight
+def variability_evaluation(df_frequenz, df_weight, df_touren, variability_path, variability_path_EU):
+    df_touren["Frachtkosten"] = pd.to_numeric(df_touren["Frachtkosten"], errors="coerce")
+    df_auswertung = pd.DataFrame()
 
-    df_auswertung["avg_Gewicht"] = df_gewicht.mean()
+    df_auswertung["ID_Empfänger"] = df_touren["ID_Empfänger"].unique()
+    df_auswertung.set_index("ID_Empfänger", inplace=True)
+
+    df_auswertung["avg_Gewicht"] = df_weight.mean()
     df_auswertung["avg_Frequenz"] = df_frequenz.mean()
 
-    df_auswertung["std_Gewicht"] = df_gewicht.std()
+    df_auswertung["std_Gewicht"] = df_weight.std()
     df_auswertung["std_Frequenz"] = df_frequenz.std()
 
     df_auswertung["variability_Gewicht"] = df_auswertung["std_Gewicht"] / df_auswertung["avg_Gewicht"]
     df_auswertung["variability_Frequenz"] = df_auswertung["std_Frequenz"] / df_auswertung["avg_Frequenz"]
 
-    df_auswertung["sum_Frachtkosten"] = df_touren.groupby("ID_Empfänger")["Frachtkosten"].sum()
-    df_auswertung["count_Sendungen"] = df_touren.groupby("ID_Empfänger")["Frachtkosten"].count()
-    df_auswertung["sum_Gewicht"] = df_touren.groupby("ID_Empfänger")["Gewicht"].sum()
+    df_auswertung["Frachtkosten"] = df_touren.groupby("ID_Empfänger")["Frachtkosten"].sum()
+    df_auswertung["Sendungen"] = df_touren.groupby("ID_Empfänger")["Frachtkosten"].count()
+    df_auswertung["Gewicht"] = df_touren.groupby("ID_Empfänger")["Gewicht"].sum()
 
     #df_auswertung["Profilkunde"] = True
 
@@ -256,12 +262,18 @@ def variabilitätsauswertung1(df_frequenz, df_gewicht, df_touren):
                                           'std_Gewicht': 'float64',
                                           'std_Frequenz': 'float64',
                                           'variability_Gewicht': 'float64',
-                                          'variability_Frequenz': 'float64'})
+                                          'variability_Frequenz': 'float64',
+                                          'Frachtkosten': 'float',
+                                          'Sendungen': 'int',
+                                          'Gewicht': 'float'
+                                          })
+    df_auswertung.reset_index(inplace=True)
 
-    df_auswertung.to_csv(r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variabilitätsauswertung.csv",
+    df_auswertung.to_csv(variability_path,
                          encoding="latin_1", sep=";", index_label="ID_Empfänger")
-    #df_auswertung.to_csv(r"../00_Resources/pre_Analysis/Variabilitätsauswertung/Variabilitätsauswertung_EU.csv",
-                         #encoding="latin_1", sep=";", index_label="ID_Empfänger", decimal=',')
+    df_auswertung.to_csv(variability_path_EU,
+                         encoding="latin_1", sep=";", index_label="ID_Empfänger", decimal=',')
+    print(f"Variablity analysis has been done and results are saved in: {variability_path} and European version: {variability_path_EU}")
 
     return df_auswertung
 
@@ -270,33 +282,15 @@ if __name__ == '__main__':
     state = None
     years = None
 
-    df_touren_all = pd.read_csv(r"../00_Resources/Grunddaten/Datensatz_TK_fertig.csv",
-                            encoding="latin_1", sep=";", decimal=','
-                                , dtype={'Gewicht': np.float64, "Distanz": np.float64, "Frachtkosten" : np.float64})
 
-    print(df_touren_all.info())
-
-    #df_ID_list = pd.read_csv(r"../00_Resources/Grunddaten/ID_liste.csv",
-    #                        encoding="latin_1", sep=";")
-
-    df_touren_all["Beladedatum"] = pd.to_datetime(df_touren_all["Beladedatum"], dayfirst=True)
-    df_touren_all["Kalenderwoche"] = df_touren_all["Beladedatum"].dt.isocalendar().week  # Added isocalender
-
-    if state == None or years == None:
-        for date in hd.DEU(state="SL", years=2020): #Wochen mit Feiertagen aussortieren
-            df_touren = df_touren_all[df_touren_all["Kalenderwoche"] != date.isocalendar()[1]]
-
-    df_frequenz, df_gewicht = auswertung_nach_KW(df_touren) #Auswertung nach KWs erstellen
-
-    df_auswertung = variabilitätsauswertung(df_frequenz, df_gewicht)
 
 ####################################################################################################
 # Open the file
-data = pd.read_csv(r"../00_Resources/Grunddaten/added_Koordinaten.csv", encoding="latin_1", sep=";", decimal=',')
+#data = pd.read_csv(r"../00_Resources/Grunddaten/added_Koordinaten.csv", encoding="latin_1", sep=";", decimal=',')
 # Convert "Beladedatum" column to datetime format
-data["Beladedatum"] = pd.to_datetime(data["Beladedatum"], format="%d.%m.%Y")
+#data["Beladedatum"] = pd.to_datetime(data["Beladedatum"], format="%d.%m.%Y")
 # Extract week number using strftime and write to new column "Kalenderwoche"
-data["Kalenderwoche"] = data["Beladedatum"].dt.strftime("%U")
+#data["Kalenderwoche"] = data["Beladedatum"].dt.strftime("%U")
 
 # Clean and convert the "Gewicht" column to numeric
 #data["Gewicht"] = pd.to_numeric(data["Gewicht"], errors="coerce")
@@ -312,5 +306,5 @@ data["Kalenderwoche"] = data["Beladedatum"].dt.strftime("%U")
 #Fill NA values in "Frachtkosten" column with the mean
 #data["Frachtkosten"].fillna(mean_value, inplace=True)
 
-df_frequenz, df_gewicht = auswertung_nach_KW1(data)
-df_auswertung1 = variabilitätsauswertung1(df_frequenz, df_gewicht, data)
+#df_frequenz, df_weight = evaluation_after_KW1(data)
+#df_evaluation = variability_evaluation(df_frequenz, df_weight, data)

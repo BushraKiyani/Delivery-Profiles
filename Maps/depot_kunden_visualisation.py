@@ -5,7 +5,6 @@ import webbrowser
 import ast
 
 
-
 # Maps
 def load_map(m,profil_kund, depot_coord):
     folium.Marker(
