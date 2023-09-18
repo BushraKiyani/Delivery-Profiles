@@ -4,7 +4,7 @@ from a_Variability import *
 from a_apply_profiles import *
 from a_adjust_Record import *
 from config import *
-from weekday_analysis_plots import *
+from weekday_analysis_plot import *
 
 if __name__ == "__main__":
 
