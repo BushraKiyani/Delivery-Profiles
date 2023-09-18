@@ -135,6 +135,7 @@ def plots(data_demand_base, data_demand_special, df_profile_base, df_full, plots
 
     # Close the PdfPages object
     pp.close()
+    print("All graphs have been added.")
     # Show the plots (optional)
     plt.show()
 
