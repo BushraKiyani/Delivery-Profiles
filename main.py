@@ -55,4 +55,5 @@ if __name__ == "__main__":
     df_assigned_profile = profile_application(df_added_freightcost, df_assigned_pattern, df_assigned_profile_path, df_result_path, df_shipments_profile_path)
     df_recal_freightcost= add_cost(df_assigned_profile,transport_preis,new_freightcost_path, column_name, tarifart,
                                    preis_basis, preis_tonne)
+
     plots(df_demand_base, save_path_special, df_profile_base, df_added_freightcost, plots_base, df_result_path)
