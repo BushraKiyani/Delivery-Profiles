@@ -44,7 +44,33 @@ save_path_special = "var_gewicht" + str(var_weight) + "_var_frequenz" + str(
 # Setting up the path to files
 save_path_base = r"../00_Resources/profile_results"
 
-
 new_freightcost_path = "../00_Resources/Grunddaten/df_recal_freightcost.csv"
+
+# Variability Evaluation
+df_frequency_path = r"00_Resources/pre_Analysis/Variabilitätsauswertung/frequenz_per_week.csv"
+df_weight_path = r"00_Resources/pre_Analysis/Variabilitätsauswertung/weight_per_week.csv"
+variability_path = r"00_Resources/pre_Analysis/Variabilitätsauswertung/variability_evaluation.csv"
+variability_path_EU = r"00_Resources/pre_Analysis/Variabilitätsauswertung/variability_evaluation_EU.csv"
+
+# Profle assigmnet parameters
+var_weight = 1
+var_frequency = 1
+min_frequency = 2
+
+# Profiles assignment paths
+save_path_special = "var_gewicht" + str(var_weight) + "_var_frequenz" + str(
+    var_frequency) + "_mindest_frequenz" + str(min_frequency)
+
+# Setting up the path to files
+save_path_base = r"00_Resources/profile_results"
+
+df_shipments_profile_path = r"00_Resources/profile_results/Ergebnisse/Pattern_results_data_only_withoutprofile_" + save_path_special + ".csv"
+df_assigned_profile_path = r"00_Resources/profile_results/Ergebnisse/Pattern_results_data_only_" + save_path_special + ".csv"
+df_result_path = r"00_Resources/profile_results/Ergebnisse/Pattern_results_data_" + save_path_special +".csv"
+
+
+df_demand_base = r"00_Resources/profile_results/Profilzuweisung" #Model result
+df_profile_base = r"00_Resources/profile_results/Ergebnisse/Pattern_results_data_only_"
+plots_base = r'00_Resources/profile_results/Plots/'
 
 
