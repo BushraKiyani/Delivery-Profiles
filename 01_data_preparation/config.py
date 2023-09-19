@@ -45,6 +45,7 @@ min_frequency = 2
 # Profiles assignment paths
 save_path_special = "var_gewicht" + str(var_weight) + "_var_frequenz" + str(
     var_frequency) + "_mindest_frequenz" + str(min_frequency)
+
 # Setting up the path to files
 save_path_base = r"00_Resources/profile_results"
 
@@ -53,6 +54,6 @@ df_assigned_profile_path = r"00_Resources/profile_results/Ergebnisse/Pattern_res
 df_result_path = r"00_Resources/profile_results/Ergebnisse/Pattern_results_data_" + save_path_special +".csv"
 
 
-df_demand_base = r"00_Resources/profile_results/Profilzuweisung"
+df_demand_base = r"00_Resources/profile_results/Profilzuweisung" #Model result
 df_profile_base = r"00_Resources/profile_results/Ergebnisse/Pattern_results_data_only_"
 plots_base = r'00_Resources/profile_results/Plots/'
