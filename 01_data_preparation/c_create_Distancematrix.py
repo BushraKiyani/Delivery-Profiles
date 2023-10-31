@@ -246,25 +246,6 @@ def create_distance_matrices(df, coordinate_list, sender_lon, sender_lat, distan
     # return real distance, duration, Euclidean distance Matrices and Distances Table
     return distances, durations, euclidean, distance_table, distances_euc_sender_df
 
-if __name__ == "__main__":
-    df_coordinates_list = pd.read_csv(
-       r"../00_Resources/Grunddaten/Profilkunden_Koordinaten.csv",
-        encoding="latin-1", sep=";", dtype={"ID_Empfänger":object, "lat": float,"lon": float})
-
-    df_coordinates_list = df_coordinates_list[["ID_Empfänger", "lat", "lon"]]
-    df_versandzentrum = {"ID_Empfänger":"Depot","lat":48.13635891257301,"lon":11.62868820669951}
-    df_coordinates_list = df_coordinates_list.append(df_versandzentrum, ignore_index=True)
-
-    dist_matrix_eukl = create_matrix_eukl(df_coordinates_list, 1.4)
-    dist_matrix_eukl.to_csv(path_or_buf=r"../00_Resources/Grunddaten/distance_matrix_eukl.csv", index=True, sep=";",
-                            encoding="latin1",decimal=".")
-    dist_matrix_eukl.to_csv(path_or_buf=r"../00_Resources/Grunddaten/distance_matrix_eukl_EU.csv", index=True, sep=";",
-                            encoding="latin1", decimal=",")
-    ###############################################################################################################
-    # load the Coordinates JSON file
-    #file_path = "../01_data_preparation/Koordinatenliste.json"
-    # Create distance matrices
-    #distances, durations, euclidean, distance_table = create_distance_matrices(file_path)
 
 
 
