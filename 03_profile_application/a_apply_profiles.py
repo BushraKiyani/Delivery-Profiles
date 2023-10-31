@@ -1,5 +1,8 @@
+from ortools.linear_solver import pywraplp
+
 from b_calc_costs import *
 import math
+
 solver = pywraplp.Solver.CreateSolver('SCIP')
 
 
@@ -28,7 +31,7 @@ def process_data(data, speicherpfad_base, speicherpfad_speziell):
     df_parameter.to_csv(speicherpfad, encoding="latin-1", sep=";")
     return df_parameter
 
-def parameter(df_touren):
+def parameter1(df_touren):
     PAT = {
         5:
             [[1, 1, 1, 1, 1]],
@@ -144,7 +147,7 @@ def pattern_assignment(data, var_weight, var_frequenz, min_frequenz,speicherpfad
     #data_fil = pd.read_csv(r"../00_Resources/profile_results/Filtern/var_gewicht100_var_frequenz100_mindest_frequenz1.csv",
        # encoding="latin_1", sep=";")
     df_parameter = process_data(filtered_df, speicherpfad_base, speicherpfad_speziell)
-    PAT, C, q, f, days = parameter(df_parameter)
+    PAT, C, q, f, days = parameter1(df_parameter)
 
     s,x = variablen(PAT,C,f)
 
