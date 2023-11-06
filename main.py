@@ -5,6 +5,8 @@ from a_apply_profiles import *
 from a_add_Coordinates import *
 from config import *
 from weekday_analysis_plots import *
+from a_apply_clustered_profiles import *
+from maps_visualization import *
 
 if __name__ == "__main__":
 
@@ -12,8 +14,8 @@ if __name__ == "__main__":
     data_processed = pd.read_csv(df_freightcost_path, encoding="latin_1", sep=";", decimal=',')
 
     # Check if 'latitude' and 'longitude' columns exist in the DataFrame
-    if 'Empfänger_lon' in data_processed.columns and 'Empfänger_lat' in data_processed.columns\
-            and 'Absender_lon' in data_processed.columns and 'Absender_lat' in data_processed.columns:
+    if 'Recipient_Longitude' in data_processed.columns and 'Recipient_Latitude' in data_processed.columns\
+            and 'Sender_Longitude' in data_processed.columns and 'Sender_Latitude' in data_processed.columns:
         print("Coordinates already exist in the data. Calculating distances...")
         df_added_coordinates = data_processed
         # Load coordinates from JSON file
@@ -43,8 +45,8 @@ if __name__ == "__main__":
     else:
         print("Costs do not exist in the data. Adding costs...")
         # Calculate Freight Cost
-        df_added_freightcost = add_cost(df_added_distances,transport_preis,df_freightcost_path, column_name, tarifart,
-                                        preis_basis, preis_tonne)
+        df_added_freightcost = add_cost(df_added_distances,transport_preis,df_freightcost_path, column_name, tariff_type,
+                                        price_basis, price_per_ton)
     # Shipments and weight per week per ID_recipient
     df_frequency, df_weight = evaluation_after_KW1(df_added_freightcost,df_frequency_path, df_weight_path )
     # Variability analysis
@@ -52,7 +54,21 @@ if __name__ == "__main__":
                                                variability_path_EU)
     df_assigned_pattern = pattern_assignment(df_var_evaluation, var_weight, var_frequency, min_frequency,save_path_base,
                                              save_path_special)
-    df_assigned_profile = profile_application(df_added_freightcost, df_assigned_pattern, df_assigned_profile_path, df_result_path, df_shipments_profile_path)
-    df_recal_freightcost= add_cost(df_assigned_profile,transport_preis,new_freightcost_path, column_name, tarifart,
-                                   preis_basis, preis_tonne)
-    plots(df_demand_base, save_path_special, df_profile_base, df_added_freightcost, plots_base, df_result_path)
+    df_assigned_clustered_pattern, list_coordinates_clustered = clustered_pattern_assignment(df_var_evaluation, list_coordinates, var_weight, var_frequency, min_frequency, num_clusters, save_path_base,
+                                             save_path_special)
+    df_assigned_profile = profile_application(df_added_freightcost, df_assigned_pattern, df_assigned_profile_path, df_result_path, df_shipments_profile_path, df_clustered_shipments_profile_path, df_clustered_assigned_profile_path, df_clustered_result_path, clustered="No")
+    df_clustered_assigned_profile = profile_application(df_added_freightcost, df_assigned_clustered_pattern, df_assigned_profile_path,
+                                              df_result_path, df_shipments_profile_path,
+                                              df_clustered_shipments_profile_path, df_clustered_assigned_profile_path,
+                                              df_clustered_result_path, clustered="Yes")
+
+    df_recal_freightcost= add_cost(df_assigned_profile,transport_preis,new_freightcost_path, column_name, tariff_type,
+                                   price_basis, price_per_ton)
+    df_recal_clustered_freightcost= add_cost(df_clustered_assigned_profile,transport_preis,new_freightcost_path, column_name, tariff_type,
+                                   price_basis, price_per_ton)
+
+    plots(df_demand_base, save_path_special, df_profile_base, df_added_freightcost, plots_base, df_result_path, "Non-Clustered")
+    plots(df_clustered_demand_base, save_path_special, df_clustered_profile_base, df_added_freightcost,
+          clustered_plots_base, df_clustered_result_path, clustered= "Clustered")
+
+    maps(list_coordinates_clustered, df_assigned_clustered_pattern)

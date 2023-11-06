@@ -5,7 +5,7 @@ from config import *
 
 def maps(list_coordinates, df_assigned_clustered_pattern ):
 
-    selected_df = list_coordinates[list_coordinates['Empfänger_id'].isin(df_assigned_clustered_pattern['ID_Empfänger'])].copy()
+    selected_df = list_coordinates[list_coordinates['Empfänger_id'].isin(df_assigned_clustered_pattern['Recipient_ID'])].copy()
     # Create a map centered at a certain location (adjust coordinates)
     map_center = [selected_df['latitude'].mean(),
                   selected_df['longitude'].mean()]  # Give original Coordinates, not radians
@@ -20,7 +20,7 @@ def maps(list_coordinates, df_assigned_clustered_pattern ):
         cluster_empfanger[cluster].append(empfanger_id)  # Store Empfänger_id in the cluster dictionary
         # Look up the Pattern_clear value from df_ergebnisse1 based on Empfänger_id and cluster
         pattern_clear = \
-        df_assigned_clustered_pattern.loc[(df_assigned_clustered_pattern['ID_Empfänger'] == empfanger_id) & (df_assigned_clustered_pattern['Cluster'] == cluster)][
+        df_assigned_clustered_pattern.loc[(df_assigned_clustered_pattern['Recipient_ID'] == empfanger_id) & (df_assigned_clustered_pattern['Cluster'] == cluster)][
             'Pattern_clear'].values[0]
         folium.CircleMarker(
             location=(row['latitude'], row['longitude']),

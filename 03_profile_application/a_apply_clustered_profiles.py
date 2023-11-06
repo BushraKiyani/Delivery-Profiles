@@ -6,11 +6,11 @@ from math import radians
 
 solver = pywraplp.Solver.CreateSolver('SCIP')
 
-def empfänger_filtern(df_touren,speicherpfad_base, speicherpfad_speziell, var_gewicht = 100, var_frequenz = 100, mindest_frequenz = 1):
+def empfänger_filtern(df_touren,speicherpfad_base, speicherpfad_speziell, var_Weight = 100, var_Frequency = 100, minimum_Frequency = 1):
     #filter
-    data = df_touren.loc[(df_touren["variability_Gewicht"]<= var_gewicht)
-                         & (df_touren["variability_Frequenz"]<= var_frequenz)
-                         & (df_touren["avg_Frequenz"]>= mindest_frequenz)].copy()
+    data = df_touren.loc[(df_touren["Variability_Weight"]<= var_Weight)
+                         & (df_touren["Variability_Frequency"]<= var_Frequency)
+                         & (df_touren["AVG_Frequency"]>= minimum_Frequency)].copy()
     speicherpfad = speicherpfad_base +r'/Filtern/' + speicherpfad_speziell+ ".csv"
     data.to_csv(speicherpfad, encoding="latin-1", sep=";")
     return data
@@ -20,11 +20,11 @@ def round_costum(value_x, border):
     return math.ceil(value_x) if value_x - value_floor >= border else math.floor(value_x)
 
 def process_data(data, speicherpfad_base, speicherpfad_speziell):
-    # Round values in "avg_Frequenz" and "avg_Gewicht" columns
-    data["Frequenz"] = data["avg_Frequenz"].apply(lambda x: round_costum(x, 0.5)) # used function round_costum1
-    data["Nachfrage"] = data.apply(lambda row: round(row["avg_Gewicht"] / row["avg_Frequenz"]), axis=1)
-    df_parameter = pd.DataFrame(data={ "ID_Empfänger": data["ID_Empfänger"], "Frequenz": data["Frequenz"], "Nachfrage": data["Nachfrage"], "Cluster": data["Cluster"] })
-    speicherpfad = speicherpfad_base + r'/Clustered_Ausgangsdaten' + r"/Daten_" + speicherpfad_speziell + ".csv"
+    # Round values in "AVG_Frequency" and "avg_Weight" columns
+    data["Frequency"] = data["AVG_Frequency"].apply(lambda x: round_costum(x, 0.5)) # used function round_costum1
+    data["Demand"] = data.apply(lambda row: round(row["avg_Weight"] / row["AVG_Frequency"]), axis=1)
+    df_parameter = pd.DataFrame(data={ "Recipient_ID": data["Recipient_ID"], "Frequency": data["Frequency"], "Demand": data["Demand"], "Cluster": data["Cluster"] })
+    speicherpfad = speicherpfad_base + r'/Clustered_Output_Data' + r"/Data_" + speicherpfad_speziell + ".csv"
     df_parameter.to_csv(speicherpfad, encoding="latin-1", sep=";")
     return df_parameter
 
@@ -58,9 +58,9 @@ def parameter(df_touren):
             [0, 0, 0, 1, 0],
             [0, 0, 0, 0, 1]],
     }
-    C = df_touren['ID_Empfänger'].values
-    q = df_touren['Nachfrage'].values
-    f = df_touren['Frequenz'].values
+    C = df_touren['Recipient_ID'].values
+    q = df_touren['Demand'].values
+    f = df_touren['Frequency'].values
     days = 5
     clusters = df_touren['Cluster'].values  # Add this line to get cluster information
 
@@ -87,11 +87,11 @@ def nebenbedingungen(PAT, days, C, q, f, s, x, clusters):
                                for m in range(len(PAT[f[j]]))])
                    <= s)
 
-    # 16. Every customer must be assigned one profile
+    # 16. Every Recipient must be assigned one profile
     for j in range(len(C)):
         solver.Add(solver.Sum(x[j, m] for m in range(len(PAT[f[j]]))) == 1)
 
-    # Customers with the same cluster and the same frequency have the same pattern
+    # Recipients with the same cluster and the same frequency have the same pattern
     for j in range(len(C)):
         for i in range(len(C)):
             if clusters[j] == clusters[i] and f[j] == f[i]:
@@ -102,7 +102,7 @@ def nebenbedingungen(PAT, days, C, q, f, s, x, clusters):
 def print_ergebnisse(PAT, days, C, q, f, clusters, x, sol):
     selected_patterns = [(j, m) for j in range(len(C)) for m in range(len(PAT[f[j]])) if x[j, m].solution_value() != 0]
     for j, m in selected_patterns:
-        print("Customer: ", j)
+        print("Recipient: ", j)
         print("Cluster: ", clusters[j])  # Print the cluster
         print("Demand: ", q[j])
         print("Frequency: ", f[j])
@@ -129,23 +129,23 @@ def save_ergebnisse(PAT, C, q, f, clusters, x, speicherpfad_base, speicherpfad_s
     ID_array, freq_array, dem_array, cluster_array, pat_array, pat_clear = zip(*selected_patterns)
 
     df_ergebnisse = pd.DataFrame(data={
-        "ID_Empfänger": ID_array,
-        "Frequenz": freq_array,
-        "Nachfrage": dem_array,
+        "Recipient_ID": ID_array,
+        "Frequency": freq_array,
+        "Demand": dem_array,
         "Cluster": cluster_array,  # Include the 'Cluster' column
         "Pattern": pat_array,
         "Pattern_clear": pat_clear,
     })
 
-    speicherpfad = speicherpfad_base + r'/Clustered_Profilzuweisung/' + speicherpfad_speziell + ".csv"
+    speicherpfad = speicherpfad_base + r'/Clustered_Profile_Assignment/' + speicherpfad_speziell + ".csv"
     df_ergebnisse.to_csv(speicherpfad, encoding="latin-1", sep=";", index=False)
 
     return df_ergebnisse
 
 def add_clusters(list_coordinates, filtered_df, num_clusters):
     df = pd.DataFrame(list_coordinates)
-    # Select rows from df where Empfänger_id matches ID_Empfänger in df_profile
-    selected_df = df[df['Empfänger_id'].isin(filtered_df['ID_Empfänger'])].copy()
+    # Select rows from df where Empfänger_id matches Recipient_ID in df_profile
+    selected_df = df[df['Empfänger_id'].isin(filtered_df['Recipient_ID'])].copy()
     # Perform clustering (you can use your existing clustering code)
     selected_df['Latitude_Radians'] = selected_df['latitude'].apply(radians)
     selected_df['Longitude_Radians'] = selected_df['longitude'].apply(radians)
@@ -153,12 +153,12 @@ def add_clusters(list_coordinates, filtered_df, num_clusters):
     kmeans = KMeans(n_clusters=num_clusters, random_state=0, n_init=10)
     selected_df['Cluster'] = kmeans.fit_predict(X)
     cluster_mapping = dict(zip(selected_df['Empfänger_id'], selected_df['Cluster']))
-    filtered_df['Cluster'] = filtered_df['ID_Empfänger'].map(cluster_mapping)
+    filtered_df['Cluster'] = filtered_df['Recipient_ID'].map(cluster_mapping)
     return filtered_df, selected_df
 
-def clustered_pattern_assignment(data,list_coordinates, var_weight, var_frequenz, min_frequenz,num_clusters, speicherpfad_base, speicherpfad_speziell):
+def clustered_pattern_assignment(data,list_coordinates, var_weight, var_Frequency, min_Frequency,num_clusters, speicherpfad_base, speicherpfad_speziell):
     print("Profile application has been started.")
-    filtered_df = empfänger_filtern(data,speicherpfad_base,speicherpfad_speziell, var_weight,var_frequenz,min_frequenz) # Gerundete avg. Frequenz und Gewicht ergänzen
+    filtered_df = empfänger_filtern(data,speicherpfad_base,speicherpfad_speziell, var_weight,var_Frequency,min_Frequency) # Gerundete avg. Frequency und Weight ergänzen
 
     filtered_df_cluster, list_coordinates_clustered = add_clusters(list_coordinates, filtered_df, num_clusters)
     df_parameter = process_data(filtered_df_cluster, speicherpfad_base, speicherpfad_speziell)

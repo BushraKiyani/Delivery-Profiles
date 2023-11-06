@@ -10,7 +10,7 @@ from scipy.spatial.distance import cdist
 
 def create_matrix_eukl(df_coordinates_list, factor = 1.4):
     df_koordinaten_geopy = df_coordinates_list.copy()
-    df_koordinaten_geopy = df_koordinaten_geopy.set_index("ID_Empfänger", drop=True)
+    df_koordinaten_geopy = df_koordinaten_geopy.set_index("Recipient_ID", drop=True)
 
     dist_matrix_eukl = pd.DataFrame(columns=df_koordinaten_geopy.index, index=df_koordinaten_geopy.index)
 
@@ -93,7 +93,7 @@ def calculate_distances_durations(sorted_locations,distances_path_C, duration_pa
 
     distances.to_csv(path_or_buf=distances_path_C, sep=",", decimal=".", index=True)
     durations.to_csv(path_or_buf=duration_path_C, sep=",", decimal=".", index=True)
-    print(f"Real Distance and Duration matrices between customers have been calculated and saved in: {distances_path_C} and {duration_path_C}, respectively")
+    print(f"Real Distance and Duration matrices between Recipients have been calculated and saved in: {distances_path_C} and {duration_path_C}, respectively")
 
     return distances, durations
 
@@ -127,7 +127,7 @@ def calculate_euclidean_distance_matrix(sorted_locations, euk_distance_path_C):
 
     # Save the distance matrix to a CSV file
     euclidean_distance_matrix.to_csv(path_or_buf=euk_distance_path_C, sep=",", decimal=".", index=True)
-    print(f"Euclidean distance matrix between customers has been calculated and saved in: {euk_distance_path_C}")
+    print(f"Euclidean distance matrix between Recipients has been calculated and saved in: {euk_distance_path_C}")
 
     return euclidean_distance_matrix
 
@@ -171,8 +171,8 @@ def create_table(euclidean, distances, durations, matrix_table_path_C):
 
 ##################### Sender Distance Calculation #############################
 def calculate_distances_durations_sender(df_sendigun, sender_lon, sender_lat, distances_path_S, duration_path_S, chunk_size=100):
-    df_sendigun[['Absender_lat', 'Absender_lon', 'Empfänger_lat', 'Empfänger_lon']] = df_sendigun[
-        ['Absender_lat', 'Absender_lon', 'Empfänger_lat', 'Empfänger_lon']].astype(float)
+    df_sendigun[['Sender_Latitude', 'Sender_Longitude', 'Recipient_Latitude', 'Recipient_Longitude']] = df_sendigun[
+        ['Sender_Latitude', 'Sender_Longitude', 'Recipient_Latitude', 'Recipient_Longitude']].astype(float)
     base_url = "https://asca-rest.lfo.tu-dortmund.de/osrm/table/v1/driving/"
     params = {"annotations": "distance,duration"}  # get distances and durations
     num_chunks = math.ceil(len(df_sendigun) / chunk_size)
@@ -190,7 +190,7 @@ def calculate_distances_durations_sender(df_sendigun, sender_lon, sender_lat, di
         chunk = df_sendigun[i_start:i_end]
 
         locations_str = f"{absender_location['longitude']},{absender_location['latitude']};"
-        locations_str += ";".join([f"{row['Empfänger_lon']},{row['Empfänger_lat']}" for _, row in chunk.iterrows()])
+        locations_str += ";".join([f"{row['Recipient_Longitude']},{row['Recipient_Latitude']}" for _, row in chunk.iterrows()])
         url = base_url + locations_str
 
         params["sources"] = "0"  # Absender is the source
@@ -209,7 +209,7 @@ def calculate_distances_durations_sender(df_sendigun, sender_lon, sender_lat, di
 
     distances.to_csv(path_or_buf=distances_path_S, sep=",", decimal=".", index=True)
     durations.to_csv(path_or_buf=duration_path_S, sep=",", decimal=".", index=True)
-    print(f"Real distances and durations between customers and the sender have been added to the dataframe in columns Real_Distance and Duration and saved in: {distances_path_S} and {duration_path_S}")
+    print(f"Real distances and durations between Recipients and the sender have been added to the dataframe in columns Real_Distance and Duration and saved in: {distances_path_S} and {duration_path_S}")
     return df_sendigun
 def calculate_euclidean_distance_sender(df_sendigun, sender_lon, sender_lat,euk_distance_path_S ):
     # Fixed Absender location
@@ -217,12 +217,12 @@ def calculate_euclidean_distance_sender(df_sendigun, sender_lon, sender_lat,euk_
 
     # Calculate Haversine distance for each row and add it to a new column
     df_sendigun['Euc_Distance'] = df_sendigun.apply(
-        lambda row: haversine(absender_location, (row['Empfänger_lat'], row['Empfänger_lon']), unit=Unit.KILOMETERS),
+        lambda row: haversine(absender_location, (row['Recipient_Latitude'], row['Recipient_Longitude']), unit=Unit.KILOMETERS),
         axis=1)
 
     # Save the haversine distance to a CSV file
     df_sendigun['Euc_Distance'].to_csv(euk_distance_path_S, sep=",", decimal=".", index=True)
-    print(f"Euclidean distances between customers and the sender have been added to the dataframe in column Euc_Distance and save in:{euk_distance_path_S}")
+    print(f"Euclidean distances between Recipients and the sender have been added to the dataframe in column Euc_Distance and save in:{euk_distance_path_S}")
     return df_sendigun
 
 ########################Combine Distances Calculation###########################
@@ -235,9 +235,9 @@ def create_distance_matrices(df, coordinate_list, sender_lon, sender_lat, distan
     euclidean = calculate_euclidean_distance_matrix(sorted_locations,euk_distance_path_C)
     # Table of all distances
     distance_table = create_table(euclidean, distances, durations, matrix_table_path_C)
-    # Sender-Customer durations and distances
+    # Sender-Recipient durations and distances
     distances_sender_df = calculate_distances_durations_sender(df,sender_lon, sender_lat,distances_path_S, duration_path_S, chunk_size)
-    # Sender-Customer Euclidean distances
+    # Sender-Recipient Euclidean distances
     distances_euc_sender_df = calculate_euclidean_distance_sender(distances_sender_df, sender_lon, sender_lat, euk_distance_path_S)
     # Save the dataframe with distances
     distances_euc_sender_df.to_csv(path_or_buf=df_distance_path, sep=";", encoding="latin1",
@@ -246,6 +246,25 @@ def create_distance_matrices(df, coordinate_list, sender_lon, sender_lat, distan
     # return real distance, duration, Euclidean distance Matrices and Distances Table
     return distances, durations, euclidean, distance_table, distances_euc_sender_df
 
+if __name__ == "__main__":
+    df_coordinates_list = pd.read_csv(
+       r"../00_Resources/Basic_Data/ProfilRecipientn_Koordinaten.csv",
+        encoding="latin-1", sep=";", dtype={"Recipient_ID":object, "lat": float,"lon": float})
+
+    df_coordinates_list = df_coordinates_list[["Recipient_ID", "lat", "lon"]]
+    df_versandzentrum = {"Recipient_ID":"Depot","lat":48.13635891257301,"lon":11.62868820669951}
+    df_coordinates_list = df_coordinates_list.append(df_versandzentrum, ignore_index=True)
+
+    dist_matrix_eukl = create_matrix_eukl(df_coordinates_list, 1.4)
+    dist_matrix_eukl.to_csv(path_or_buf=r"../00_Resources/Basic_Data/distance_matrix_eukl.csv", index=True, sep=";",
+                            encoding="latin1",decimal=".")
+    dist_matrix_eukl.to_csv(path_or_buf=r"../00_Resources/Basic_Data/distance_matrix_eukl_EU.csv", index=True, sep=";",
+                            encoding="latin1", decimal=",")
+    ###############################################################################################################
+    # load the Coordinates JSON file
+    #file_path = "../01_data_preparation/Koordinatenliste.json"
+    # Create distance matrices
+    #distances, durations, euclidean, distance_table = create_distance_matrices(file_path)
 
 
 

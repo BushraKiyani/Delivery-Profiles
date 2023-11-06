@@ -39,19 +39,19 @@ def calc_avg_delay(df_send, shippingdate):
     num_send = 0
 
     for index, row in df_send.iterrows():
-        #print(shippingdate - row["Beladedatum"])
-        sum_delay += (shippingdate - row["Beladedatum"]).days
+        #print(shippingdate - row["Loading_Date"])
+        sum_delay += (shippingdate - row["Loading_Date"]).days
         num_send += 1
 
     return sum_delay / num_send
 
-def add_to_data_list(data_list, df_sendungen_ID_date, weekday, date, gewicht, ID_send, avg_delay):
+def add_to_data_list(data_list, df_Shipments_ID_date, weekday, date, Weight, ID_send, avg_delay):
     data_list.append([
-        df_sendungen_ID_date["ID_Empfänger"].values[0],
+        df_Shipments_ID_date["Recipient_ID"].values[0],
         ID_send,
         date,
-        gewicht,
-        df_sendungen_ID_date["Euc_Distance"].values[0],
+        Weight,
+        df_Shipments_ID_date["Euc_Distance"].values[0],
         weekday,
         avg_delay
     ])
@@ -74,58 +74,58 @@ def datumsliste1(df, date_column):
         day_array.append(day)
         weekday_array.append(day.dayofweek)
 
-    df_dates = pd.DataFrame(data={"Datum": day_array, "Wochentag": weekday_array})
-    df_dates = df_dates.loc[~df_dates["Wochentag"].isin([5,6])]
+    df_dates = pd.DataFrame(data={"Datum": day_array, "Weekday": weekday_array})
+    df_dates = df_dates.loc[~df_dates["Weekday"].isin([5,6])]
     df_dates = df_dates.set_index("Datum", drop=False)
 
     return df_dates
 def profile_application(df_added_freightcost, df_profile, df_assigned_profile_path, df_result_path, df_shipments_profile_path, df_clustered_shipments_profile_path, df_clustered_assigned_profile_path, df_clustered_result_path, clustered="No"):
-    df_profile = df_profile.set_index("ID_Empfänger", drop=False)
-    df_added_freightcost = df_added_freightcost.set_index("ID_Empfänger", drop=False)
-    send_list = list(df_added_freightcost["ID_Sendung"].values)
-    gesamtgewicht = df_added_freightcost["Gewicht"].sum()
-    df_added_freightcost["Beladedatum"] = pd.to_datetime(df_added_freightcost["Beladedatum"])
-    df_added_freightcost["Wochentag"] = df_added_freightcost["Beladedatum"].dt.dayofweek
-    df_profile["ID_Empfänger"] = df_profile["ID_Empfänger"].astype(int)
-    df_shipments_not_filter = df_added_freightcost.loc[(~df_added_freightcost["ID_Empfänger"].isin(df_profile["ID_Empfänger"])) | (df_added_freightcost["ID_Empfänger"].isin(df_profile["ID_Empfänger"]) & (df_added_freightcost["Wochentag"] == 5))]
+    df_profile = df_profile.set_index("Recipient_ID", drop=False)
+    df_added_freightcost = df_added_freightcost.set_index("Recipient_ID", drop=False)
+    send_list = list(df_added_freightcost["Shipment_ID"].values)
+    gesamtWeight = df_added_freightcost["Weight"].sum()
+    df_added_freightcost["Loading_Date"] = pd.to_datetime(df_added_freightcost["Loading_Date"])
+    df_added_freightcost["Weekday"] = df_added_freightcost["Loading_Date"].dt.dayofweek
+    df_profile["Recipient_ID"] = df_profile["Recipient_ID"].astype(int)
+    df_shipments_not_filter = df_added_freightcost.loc[(~df_added_freightcost["Recipient_ID"].isin(df_profile["Recipient_ID"])) | (df_added_freightcost["Recipient_ID"].isin(df_profile["Recipient_ID"]) & (df_added_freightcost["Weekday"] == 5))]
     df_shipments_not_filter = df_shipments_not_filter[
-        ["ID_Empfänger", "ID_Sendung", "Beladedatum", "Gewicht", "Euc_Distance", "Frachtkosten", "Wochentag"]]
-    # Convert the "ID_Sendung" column to a set
-    ids_to_remove = set(df_shipments_not_filter["ID_Sendung"])
+        ["Recipient_ID", "Shipment_ID", "Loading_Date", "Weight", "Euc_Distance", "Freight_Cost", "Weekday"]]
+    # Convert the "Shipment_ID" column to a set
+    ids_to_remove = set(df_shipments_not_filter["Shipment_ID"])
     # Remove elements from send_list using set difference
     send_list = list(set(send_list) - ids_to_remove)
-    df_shipments_profile = df_added_freightcost.loc[df_added_freightcost["ID_Empfänger"].isin(df_profile["ID_Empfänger"]) & (df_added_freightcost["Wochentag"] != 5)]
-    df_dates = datumsliste1(df_shipments_profile, 'Beladedatum')
+    df_shipments_profile = df_added_freightcost.loc[df_added_freightcost["Recipient_ID"].isin(df_profile["Recipient_ID"]) & (df_added_freightcost["Weekday"] != 5)]
+    df_dates = datumsliste1(df_shipments_profile, 'Loading_Date')
     data_result_pattern = []
     send_id_list = []
     send_list_copy = send_list[:]  # Create a copy of send_list
 
-    for ID in df_shipments_profile["ID_Empfänger"].unique():
-        df_sendungen_ID = df_shipments_profile.loc[df_shipments_profile["ID_Empfänger"] == ID]
-        pattern = PAT[df_profile.loc[ID, "Frequenz"]][df_profile.loc[ID, "Pattern"]]
-        df_sendungen_ID_date = pd.DataFrame(data={"Gewicht": [], "Beladedatum": []})
+    for ID in df_shipments_profile["Recipient_ID"].unique():
+        df_Shipments_ID = df_shipments_profile.loc[df_shipments_profile["Recipient_ID"] == ID]
+        pattern = PAT[df_profile.loc[ID, "Frequency"]][df_profile.loc[ID, "Pattern"]]
+        df_Shipments_ID_date = pd.DataFrame(data={"Weight": [], "Loading_Date": []})
 
         for index, row in df_dates[::-1].iterrows():
-            state = pattern[row["Wochentag"]]
-            if not df_sendungen_ID.loc[df_sendungen_ID["Beladedatum"] == row["Datum"]].empty:
-                df_sendungen_ID_date = pd.concat([df_sendungen_ID_date, df_sendungen_ID[df_sendungen_ID["Beladedatum"] == row["Datum"]]])
-                for i in df_sendungen_ID[df_sendungen_ID["Beladedatum"] == row["Datum"]]["ID_Sendung"].values:
+            state = pattern[row["Weekday"]]
+            if not df_Shipments_ID.loc[df_Shipments_ID["Loading_Date"] == row["Datum"]].empty:
+                df_Shipments_ID_date = pd.concat([df_Shipments_ID_date, df_Shipments_ID[df_Shipments_ID["Loading_Date"] == row["Datum"]]])
+                for i in df_Shipments_ID[df_Shipments_ID["Loading_Date"] == row["Datum"]]["Shipment_ID"].values:
                     send_id_list.append(int(i))
                     send_list_copy.remove(i)  # Use send_list_copy here
-            if (state == 1) & (df_sendungen_ID_date.shape[0] != 0) & (df_sendungen_ID_date["Gewicht"].sum() <= 25000):
-                avg_delay = calc_avg_delay(df_sendungen_ID_date, row["Datum"])
-                data_result_pattern = add_to_data_list(data_result_pattern, df_sendungen_ID_date, weekday=row["Wochentag"], date=row["Datum"], gewicht=df_sendungen_ID_date["Gewicht"].sum(), ID_send=list(df_sendungen_ID_date["ID_Sendung"]), avg_delay=avg_delay)
-                df_sendungen_ID_date = pd.DataFrame(data={"Gewicht": [],
-                                                            "Beladedatum": [],
+            if (state == 1) & (df_Shipments_ID_date.shape[0] != 0) & (df_Shipments_ID_date["Weight"].sum() <= 25000):
+                avg_delay = calc_avg_delay(df_Shipments_ID_date, row["Datum"])
+                data_result_pattern = add_to_data_list(data_result_pattern, df_Shipments_ID_date, weekday=row["Weekday"], date=row["Datum"], Weight=df_Shipments_ID_date["Weight"].sum(), ID_send=list(df_Shipments_ID_date["Shipment_ID"]), avg_delay=avg_delay)
+                df_Shipments_ID_date = pd.DataFrame(data={"Weight": [],
+                                                            "Loading_Date": [],
                                                             })
 
     # Create the DataFrame from the list of lists
-    df_result_pattern = pd.DataFrame(data_result_pattern, columns=["ID_Empfänger", "ID_Sendung", "Beladedatum", "Gewicht", "Euc_Distance", "Wochentag", "Delay"])
-    df_result_pattern["ID_Empfänger"] = df_result_pattern["ID_Empfänger"].astype(int)
-    df_result_pattern["ID_Sendung"] = df_result_pattern["ID_Sendung"].apply(lambda x: [int(i) for i in x])
+    df_result_pattern = pd.DataFrame(data_result_pattern, columns=["Recipient_ID", "Shipment_ID", "Loading_Date", "Weight", "Euc_Distance", "Weekday", "Delay"])
+    df_result_pattern["Recipient_ID"] = df_result_pattern["Recipient_ID"].astype(int)
+    df_result_pattern["Shipment_ID"] = df_result_pattern["Shipment_ID"].apply(lambda x: [int(i) for i in x])
 
     df_result = pd.concat([df_result_pattern, df_shipments_not_filter], ignore_index=True)
-    df_result = df_result.astype({"ID_Empfänger": int, "Euc_Distance": float, "Gewicht": float, "Frachtkosten": float})
+    df_result = df_result.astype({"Recipient_ID": int, "Euc_Distance": float, "Weight": float, "Freight_Cost": float})
 
     if clustered == "Yes":
         df_result_pattern.to_csv(df_clustered_assigned_profile_path, sep=";", encoding="latin1", decimal=".",

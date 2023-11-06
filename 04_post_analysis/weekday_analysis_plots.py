@@ -13,10 +13,10 @@ def plot_demand_percentage(df_demand, data_demand_special, days, clustered="Non-
         df_demand[day] = df_demand['Pattern_clear'].apply(lambda x: x[i])
 
 
-    # Calculate the average Nachfrage per day
+    # Calculate the average Demand per day
     demand_per_day = {}
     for day in days:
-        demand_per_day[day] = df_demand[df_demand[day] == 1]['Nachfrage'].sum()
+        demand_per_day[day] = df_demand[df_demand[day] == 1]['Demand'].sum()
     # Assuming you already have the average_demand_per_day dictionary calculated as mentioned in your code
 
     # Calculate the sum of average demand per day
@@ -58,21 +58,21 @@ def plot_demand_percentage(df_demand, data_demand_special, days, clustered="Non-
 
 
 def plot_profile_comparison(data_profile, data_notprofile, data_demand_special, days, database, clustered="Non-Clustered"):
-    # Calculate percentage Gewicht per day for data_profile
-    sum_gewicht_per_day_profile = data_profile.groupby('Wochentag')['Gewicht'].sum()
-    total_weight_profile = sum_gewicht_per_day_profile.sum()
-    percentage_gewicht_per_day_profile = sum_gewicht_per_day_profile / total_weight_profile * 100
-    percentage_gewicht_per_day_profile = percentage_gewicht_per_day_profile.reindex([0, 1, 2, 3, 4])
+    # Calculate percentage Weight per day for data_profile
+    sum_Weight_per_day_profile = data_profile.groupby('Weekday')['Weight'].sum()
+    total_weight_profile = sum_Weight_per_day_profile.sum()
+    percentage_Weight_per_day_profile = sum_Weight_per_day_profile / total_weight_profile * 100
+    percentage_Weight_per_day_profile = percentage_Weight_per_day_profile.reindex([0, 1, 2, 3, 4])
 
-    # Calculate percentage Gewicht per day for data_notprofile
-    sum_gewicht_per_day_notprofile = data_notprofile.groupby('Wochentag')['Gewicht'].sum()
-    total_weight_notprofile = sum_gewicht_per_day_notprofile.sum()
-    percentage_gewicht_per_day_notprofile = sum_gewicht_per_day_notprofile / total_weight_notprofile * 100
-    percentage_gewicht_per_day_notprofile = percentage_gewicht_per_day_notprofile.reindex([0, 1, 2, 3, 4])
+    # Calculate percentage Weight per day for data_notprofile
+    sum_Weight_per_day_notprofile = data_notprofile.groupby('Weekday')['Weight'].sum()
+    total_weight_notprofile = sum_Weight_per_day_notprofile.sum()
+    percentage_Weight_per_day_notprofile = sum_Weight_per_day_notprofile / total_weight_notprofile * 100
+    percentage_Weight_per_day_notprofile = percentage_Weight_per_day_notprofile.reindex([0, 1, 2, 3, 4])
 
     # Convert the dictionaries to pandas Series for plotting
-    percentage_profile = pd.Series(percentage_gewicht_per_day_profile)
-    percentage_notprofile = pd.Series(percentage_gewicht_per_day_notprofile)
+    percentage_profile = pd.Series(percentage_Weight_per_day_profile)
+    percentage_notprofile = pd.Series(percentage_Weight_per_day_notprofile)
 
     # Create an array for the x-axis positions
     x = np.arange(len(days))
@@ -111,10 +111,10 @@ def plots(data_demand_base, data_demand_special, df_profile_base, df_full, plots
     df_demand = pd.read_csv(data_demand_base+ "\\" + data_demand_special+".csv", encoding="latin_1", sep=";")
     df_profile = pd.read_csv(df_profile_base+ data_demand_special+".csv", encoding="latin_1", sep=";")
     df_result = pd.read_csv(df_reult_path, encoding="latin_1", sep=";")
-    # Convert the 'Beladedatum' column to a datetime object
-    df_full['Beladedatum'] = pd.to_datetime(df_full['Beladedatum'])
-    # Calculate the weekday for each 'Beladedatum'
-    df_full['Wochentag'] = df_full['Beladedatum'].dt.weekday
+    # Convert the 'Loading_Date' column to a datetime object
+    df_full['Loading_Date'] = pd.to_datetime(df_full['Loading_Date'])
+    # Calculate the weekday for each 'Loading_Date'
+    df_full['Weekday'] = df_full['Loading_Date'].dt.weekday
 
     df_notprofile = pd.read_csv(df_profile_base+"withoutprofile_"+ data_demand_special+".csv", encoding="latin_1", sep=";")
 

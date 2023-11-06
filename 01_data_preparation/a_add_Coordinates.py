@@ -6,13 +6,13 @@ import json
 
 # Gets the coordinates using the Nominatim geocoding API
 def get_receiver_coordinates(row):
-    address = f"{row['Straße_Empfänger']}, {row['PLZ_Empfänger']}, {row['Stadt_Empfänger']}"
+    address = f"{row['Recipient_Street']}, {row['Recipient_Postal_Code']}, {row['Recipient_City']}"
     url = f"https://asca-rest.lfo.tu-dortmund.de/nominatim/search.php?q={address}&format=jsonv2"
     response = requests.get(url)
     data = response.json()
     if len(data) > 0:
         coordinates = {
-            "Empfänger_id": row['ID_Empfänger'],
+            "Empfänger_id": row['Recipient_ID'],
             "longitude": data[0]['lon'],
             "latitude": data[0]['lat'],
         }
@@ -44,27 +44,27 @@ def add_coordinates_to_df(lon_lat_list, df, sender_lon, sender_lat):
     rows in the DataFrame for each receiver address.
     """
     def update_row(row):
-        Empfänger_ID = row['ID_Empfänger']
-        Empfänger_lon, Empfänger_lat = None, None
+        Empfänger_ID = row['Recipient_ID']
+        Recipient_Longitude, Recipient_Latitude = None, None
         empfänger_coords = list(filter(lambda x: x['Empfänger_id'] == Empfänger_ID, lon_lat_list))
         if len(empfänger_coords) > 0:
             empfänger_coords = empfänger_coords[0]
-            Empfänger_lon = empfänger_coords['longitude']
-            Empfänger_lat = empfänger_coords['latitude']
+            Recipient_Longitude = empfänger_coords['longitude']
+            Recipient_Latitude = empfänger_coords['latitude']
 
-        row['Empfänger_lon'] = Empfänger_lon
-        row['Empfänger_lat'] = Empfänger_lat
-        row['Absender_lon'] = sender_lon
-        row['Absender_lat'] = sender_lat
+        row['Recipient_Longitude'] = Recipient_Longitude
+        row['Recipient_Latitude'] = Recipient_Latitude
+        row['Sender_Longitude'] = sender_lon
+        row['Sender_Latitude'] = sender_lat
         return row
     df = df.apply(update_row, axis=1)
-    df[['Empfänger_lon', 'Empfänger_lat']] = df[['Empfänger_lon', 'Empfänger_lat']].astype(float).round(6)
+    df[['Recipient_Longitude', 'Recipient_Latitude']] = df[['Recipient_Longitude', 'Recipient_Latitude']].astype(float).round(6)
     return df
 
 
 def add_coordinates(processed_data, sender_lon, sender_lat, save_path, json_coordinate_list_path):
-    # Get Unique data according to ID_Empfänger (For getting coordinates once per ID_Empfänger)
-    unique_processed_data = processed_data.drop_duplicates(subset=['ID_Empfänger'])
+    # Get Unique data according to Recipient_ID (For getting coordinates once per Recipient_ID)
+    unique_processed_data = processed_data.drop_duplicates(subset=['Recipient_ID'])
     # Get Coordinates
     cor = get_and_write_receiver_coordinates(unique_processed_data,json_coordinate_list_path)
     # Add Coordinates to the dataframe
