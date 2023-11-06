@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import ast
 
-def plot_demand_percentage(df_demand, data_demand_special, days):
+def plot_demand_percentage(df_demand, data_demand_special, days, clustered="Non-Clustered"):
    # Check if the 'Pattern_clear' column is not a string
     if pd.api.types.infer_dtype(df_demand['Pattern_clear']) == 'string':
         df_demand['Pattern_clear'] = df_demand['Pattern_clear'].apply(ast.literal_eval)
@@ -35,7 +35,7 @@ def plot_demand_percentage(df_demand, data_demand_special, days):
     plt.bar(percentage_demand_per_day.index, percentage_demand_per_day.values, color='lightgrey',width=0.5)
     plt.xlabel('Days of the Week', fontsize=12)
     plt.ylabel('Percentage Demand (%)', fontsize=12)
-    plt.title('Percentage Demand per Day' + '\n' + '(' + data_demand_special +')', fontsize=14)
+    plt.title(f'Percentage Demand per Day ({data_demand_special} - {clustered})', fontsize=14)
     plt.xticks(rotation=0, fontsize=10)  # To display day names horizontally
     # Create a list of tick positions and labels
     tick_positions = [0, 5, 10, 15, 20, 25]
@@ -57,7 +57,7 @@ def plot_demand_percentage(df_demand, data_demand_special, days):
     return plt.gcf()
 
 
-def plot_profile_comparison(data_profile, data_notprofile, data_demand_special, days, database):
+def plot_profile_comparison(data_profile, data_notprofile, data_demand_special, days, database, clustered="Non-Clustered"):
     # Calculate percentage Gewicht per day for data_profile
     sum_gewicht_per_day_profile = data_profile.groupby('Wochentag')['Gewicht'].sum()
     total_weight_profile = sum_gewicht_per_day_profile.sum()
@@ -94,7 +94,7 @@ def plot_profile_comparison(data_profile, data_notprofile, data_demand_special, 
         plt.text(x[i] + width/2, percentage_profile[i], f"{rounded_percentage_profile}%", ha='center', va='bottom')
     plt.xlabel('Days of the Week', fontsize=12)
     plt.ylabel('Percentage Weight (%)', fontsize=12)
-    plt.title('Percentage Weight with and without Profiles per Day' +' ' + '(' +database +')' + '\n' + '(' + data_demand_special +')', fontsize=14)
+    plt.title(f'Percentage Weight with and without Profiles per Day ({database} - {data_demand_special} - {clustered})', fontsize=14)
     plt.xticks(x, days, rotation=0, fontsize=10)
     tick_positions = [0, 5, 10, 15, 20, 25, 30]
     tick_labels = [f"{pos}%" for pos in tick_positions]
@@ -106,7 +106,7 @@ def plot_profile_comparison(data_profile, data_notprofile, data_demand_special, 
     plt.tight_layout()
     print("Bar plot for"+ '(' +database +')' + "has been saved.")
     return plt.gcf()
-def plots(data_demand_base, data_demand_special, df_profile_base, df_full, plots_base, df_reult_path):
+def plots(data_demand_base, data_demand_special, df_profile_base, df_full, plots_base, df_reult_path, clustered="Non-Clustered"):
 
     df_demand = pd.read_csv(data_demand_base+ "\\" + data_demand_special+".csv", encoding="latin_1", sep=";")
     df_profile = pd.read_csv(df_profile_base+ data_demand_special+".csv", encoding="latin_1", sep=";")
@@ -119,13 +119,13 @@ def plots(data_demand_base, data_demand_special, df_profile_base, df_full, plots
     df_notprofile = pd.read_csv(df_profile_base+"withoutprofile_"+ data_demand_special+".csv", encoding="latin_1", sep=";")
 
     # Create a PdfPages object to save the plots
-    pp = PdfPages(plots_base +'plot_'+ data_demand_special +'.pdf', keep_empty=False)
+    pp = PdfPages(plots_base +'plot_'+ data_demand_special + clustered +'.pdf', keep_empty=False)
     days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
 
     # Create the plots
-    fig1 = plot_demand_percentage(df_demand, data_demand_special,days)
-    fig2 = plot_profile_comparison(df_profile, df_notprofile, data_demand_special,days, "Only Profiles")
-    fig3 = plot_profile_comparison(df_result, df_full,  data_demand_special,days,"Full Data")
+    fig1 = plot_demand_percentage(df_demand, data_demand_special, days, clustered)
+    fig2 = plot_profile_comparison(df_profile, df_notprofile, data_demand_special, days, "Only Profiles", clustered)
+    fig3 = plot_profile_comparison(df_result, df_full, data_demand_special, days, "Full Data", clustered)
     #fig3 = plot_full_data_comparison(df_full,days)
 
     # Add the plots to the PdfPages object
@@ -135,6 +135,8 @@ def plots(data_demand_base, data_demand_special, df_profile_base, df_full, plots
 
     # Close the PdfPages object
     pp.close()
-    print("All graphs have been added.")
+    print(f"All graphs for"+clustered+ " data have been added.")
     # Show the plots (optional)
     plt.show()
+
+

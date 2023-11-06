@@ -79,7 +79,7 @@ def datumsliste1(df, date_column):
     df_dates = df_dates.set_index("Datum", drop=False)
 
     return df_dates
-def profile_application(df_added_freightcost,df_profile,df_assigned_profile_path, df_result_path, df_shipments_profile_path):
+def profile_application(df_added_freightcost, df_profile, df_assigned_profile_path, df_result_path, df_shipments_profile_path, df_clustered_shipments_profile_path, df_clustered_assigned_profile_path, df_clustered_result_path, clustered="No"):
     df_profile = df_profile.set_index("ID_Empfänger", drop=False)
     df_added_freightcost = df_added_freightcost.set_index("ID_Empfänger", drop=False)
     send_list = list(df_added_freightcost["ID_Sendung"].values)
@@ -95,8 +95,6 @@ def profile_application(df_added_freightcost,df_profile,df_assigned_profile_path
     # Remove elements from send_list using set difference
     send_list = list(set(send_list) - ids_to_remove)
     df_shipments_profile = df_added_freightcost.loc[df_added_freightcost["ID_Empfänger"].isin(df_profile["ID_Empfänger"]) & (df_added_freightcost["Wochentag"] != 5)]
-    df_shipments_profile.to_csv(
-        path_or_buf= df_shipments_profile_path, encoding="latin_1", sep=";", decimal=".")
     df_dates = datumsliste1(df_shipments_profile, 'Beladedatum')
     data_result_pattern = []
     send_id_list = []
@@ -125,14 +123,21 @@ def profile_application(df_added_freightcost,df_profile,df_assigned_profile_path
     df_result_pattern = pd.DataFrame(data_result_pattern, columns=["ID_Empfänger", "ID_Sendung", "Beladedatum", "Gewicht", "Euc_Distance", "Wochentag", "Delay"])
     df_result_pattern["ID_Empfänger"] = df_result_pattern["ID_Empfänger"].astype(int)
     df_result_pattern["ID_Sendung"] = df_result_pattern["ID_Sendung"].apply(lambda x: [int(i) for i in x])
-    df_result_pattern.to_csv(
-        path_or_buf=df_assigned_profile_path,sep=";", encoding="latin1", decimal=".", index=False)
 
     df_result = pd.concat([df_result_pattern, df_shipments_not_filter], ignore_index=True)
     df_result = df_result.astype({"ID_Empfänger": int, "Euc_Distance": float, "Gewicht": float, "Frachtkosten": float})
-    df_result.to_csv(
-        path_or_buf= df_result_path, encoding="latin_1", sep=";", decimal=".")
 
-    print(f"Patterns have have been added and saved in: {df_assigned_profile_path} and in: {df_result_path}")
+    if clustered == "Yes":
+        df_result_pattern.to_csv(df_clustered_assigned_profile_path, sep=";", encoding="latin1", decimal=".",
+                                 index=False)
+        df_result.to_csv(df_clustered_result_path, encoding="latin_1", sep=";", decimal=".")
+        df_shipments_profile.to_csv(df_clustered_shipments_profile_path, encoding="latin_1", sep=";", decimal=".")
+        print(f"Clustered Patterns have been added and saved in: {df_clustered_assigned_profile_path}, {df_clustered_result_path} and in: {df_clustered_shipments_profile_path}")
+    else:
+        df_result_pattern.to_csv(df_assigned_profile_path, sep=";", encoding="latin1", decimal=".", index=False)
+        df_result.to_csv(df_result_path, encoding="latin_1", sep=";", decimal=".")
+        df_shipments_profile.to_csv(df_shipments_profile_path, encoding="latin_1", sep=";", decimal=".")
+        print(f"Patterns have been added and saved in: {df_shipments_profile_path}, {df_assigned_profile_path} and in: {df_result_path}")
+
     return df_result_pattern
 

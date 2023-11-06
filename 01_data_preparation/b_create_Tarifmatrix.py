@@ -23,6 +23,6 @@ def add_cost(df_touren_distanzen,transport_preis,df_freightcost_path, columnname
     df_tarifmatrix_long = transform_tarifmatrix(transport_preis)
     df_touren_distanzen[columnname] = df_touren_distanzen.apply(lambda row: frachtkosten_berechnen(df_tarifmatrix_long, row["Gewicht"], row["Euc_Distance"], tarifart, preis_basis, preis_tonne),
     axis=1)
-    df_touren_distanzen.to_csv(path_or_buf= df_freightcost_path, sep=";",encoding="latin1", decimal=".")
+    #df_touren_distanzen.to_csv(path_or_buf= df_freightcost_path, sep=";",encoding="latin1", decimal=".")
     print(f"Freight costs have been added and file is saved in: {df_freightcost_path}")
     return df_touren_distanzen
