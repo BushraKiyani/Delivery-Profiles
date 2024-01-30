@@ -1,5 +1,6 @@
 import pandas as pd
 import datetime as dt
+from config import *
 
 PAT = {
         5:
@@ -126,6 +127,9 @@ def profile_application(df_added_freightcost, df_profile, df_assigned_profile_pa
 
     df_result = pd.concat([df_result_pattern, df_shipments_not_filter], ignore_index=True)
     df_result = df_result.astype({"Recipient_ID": int, "Euc_Distance": float, "Weight": float, "Freight_Cost": float})
+    df_added_freightcost.to_csv(path_or_buf= df_freightcost_path, sep=";", encoding="latin1", decimal=".",
+                                index=False)
+    print(f"Weekdays are added and file is saved in: {df_freightcost_path}")
 
     if clustered == "Yes":
         df_result_pattern.to_csv(df_clustered_assigned_profile_path, sep=";", encoding="latin1", decimal=".",

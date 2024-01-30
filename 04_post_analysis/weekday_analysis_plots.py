@@ -139,4 +139,61 @@ def plots(data_demand_base, data_demand_special, df_profile_base, df_full, plots
     # Show the plots (optional)
     plt.show()
 
+def freight_cost_comparison_plot(df_recal_clustered_freightcost,df_recal_freightcost,df_added_freightcostpath):
+    # Function to calculate total cost for each day
+    def calculate_total_cost(df):
+        df['Freight_Cost'] = pd.to_numeric(df['Freight_Cost'], errors='coerce')  # Convert 'Freight_Cost' to numeric
+        return df.groupby('Weekday')['Freight_Cost'].sum()
 
+    df_added_freightcost = pd.read_csv(df_added_freightcostpath,
+        encoding="latin_1", sep=";")
+
+    # Calculate total cost for each dataframe
+    total_cost_recal_clustered = calculate_total_cost(df_recal_clustered_freightcost)
+    total_cost_recal = calculate_total_cost(df_recal_freightcost)
+    total_cost_added = calculate_total_cost(df_added_freightcost)
+
+    # Check if Weekday values are consistent
+    assert len(total_cost_recal_clustered) == len(total_cost_recal) == len(
+        total_cost_added), "Inconsistent Weekday values"
+
+    # Calculate percentages for each dataframe
+    percentage_recal_clustered = (df_recal_clustered_freightcost.groupby('Weekday')[
+                                      'Freight_Cost'].sum() / total_cost_recal_clustered.sum()) * 100
+    percentage_recal = (df_recal_freightcost.groupby('Weekday')['Freight_Cost'].sum() / total_cost_recal.sum()) * 100
+    percentage_added = (df_added_freightcost.groupby('Weekday')['Freight_Cost'].sum() / total_cost_added.sum()) * 100
+
+    # Plotting the bar graph with percentages
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    bar_width = 0.25
+    bar_positions = range(len(total_cost_recal_clustered))
+
+    # Plot bars for each dataframe
+    ax.bar([pos - bar_width for pos in bar_positions], total_cost_recal_clustered, width=bar_width,
+           label='Clustered Profiles', color='blue')
+    ax.bar(bar_positions, total_cost_recal, width=bar_width, label='Profiles Only', color='green')
+    ax.bar([pos + bar_width for pos in bar_positions], total_cost_added, width=bar_width, label='Without Profiles', color='orange')
+
+    # Add percentages on each bar for each dataframe with reduced text size
+    for pos, percentage in zip(bar_positions, percentage_recal_clustered):
+        ax.text(pos - bar_width, total_cost_recal_clustered[pos] + 2, f'{percentage:.2f}%', ha='center', va='bottom',
+                color='blue', fontsize=8)
+
+    for pos, percentage in zip(bar_positions, percentage_recal):
+        ax.text(pos, total_cost_recal[pos] + 2, f'{percentage:.2f}%', ha='center', va='bottom', color='green',
+                fontsize=8)
+
+    for pos, percentage in zip(bar_positions, percentage_added):
+        ax.text(pos + bar_width, total_cost_added[pos] + 2, f'{percentage:.2f}%', ha='center', va='bottom',
+                color='orange', fontsize=8)
+
+    ax.set_xticks(bar_positions)
+    ax.set_xticklabels(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])
+
+    ax.set_xlabel('Weekday')
+    ax.set_ylabel('Total Freight Cost')
+    ax.set_title('Freight Cost Comparison by Weekday')
+
+    ax.legend()
+    plt.show()

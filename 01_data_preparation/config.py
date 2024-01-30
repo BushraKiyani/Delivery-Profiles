@@ -29,8 +29,8 @@ price_basis = 23.28
 price_per_ton = 35.31
 column_name = 'Freight_Cost' # Name of the column where freight cost will be saved in the dataset
 df_freightcost_path = "00_Resources/Basic_Data/df_added_freightcost_re.csv" #renamed
-new_freightcost_path = "00_Resources/Basic_Data/df_recal_freightcost.csv" #renamed
-
+#new_freightcost_path = "00_Resources/Basic_Data/df_recal_freightcost.csv" #renamed
+new_freightcost_path = "00_Resources/Basic_Data/df_recal_test_freightcost.csv"
 # Variability Evaluation
 df_frequency_path = r"00_Resources/pre_Analysis/Variability_Analysis/Frequency_per_week.csv" #renamed
 df_weight_path = r"00_Resources/pre_Analysis/Variability_Analysis/weight_per_week.csv" #renamed
@@ -48,7 +48,7 @@ save_path_special = "var_Weight" + str(var_weight) + "_var_Frequency" + str(
 
 # Setting up the path to files
 save_path_base = r"00_Resources/profile_results"
-
+#output_csv_path = r"C:\Users\Owner\PycharmProjects\cls_delivery\00_Resources\profile_results\Results\routing_" + save_path_special + ".csv"
 df_shipments_profile_path = r"00_Resources/profile_results/Results/Pattern_results_data_only_withoutprofile_" + save_path_special + ".csv"
 df_assigned_profile_path = r"00_Resources/profile_results/Results/Pattern_results_data_only_" + save_path_special + ".csv"
 df_result_path = r"00_Resources/profile_results/Results/Pattern_results_data_" + save_path_special +".csv"
