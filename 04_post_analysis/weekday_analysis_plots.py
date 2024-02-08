@@ -3,6 +3,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import pandas as pd
 import ast
+import seaborn as sns
 
 def plot_demand_percentage(df_demand, data_demand_special, days, clustered="Non-Clustered"):
    # Check if the 'Pattern_clear' column is not a string
@@ -153,6 +154,10 @@ def freight_cost_comparison_plot(df_recal_clustered_freightcost,df_recal_freight
     total_cost_recal = calculate_total_cost(df_recal_freightcost)
     total_cost_added = calculate_total_cost(df_added_freightcost)
 
+    print("Total Freight Cost Without Profiles: " + str(total_cost_added))
+    print("Total Freight Cost With Profiles: " + str(total_cost_recal))
+    print("Total Freight Cost With Clustered Profiles: " + str(total_cost_recal_clustered))
+
     # Check if Weekday values are consistent
     assert len(total_cost_recal_clustered) == len(total_cost_recal) == len(
         total_cost_added), "Inconsistent Weekday values"
@@ -170,23 +175,23 @@ def freight_cost_comparison_plot(df_recal_clustered_freightcost,df_recal_freight
     bar_positions = range(len(total_cost_recal_clustered))
 
     # Plot bars for each dataframe
-    ax.bar([pos - bar_width for pos in bar_positions], total_cost_recal_clustered, width=bar_width,
-           label='Clustered Profiles', color='blue')
-    ax.bar(bar_positions, total_cost_recal, width=bar_width, label='Profiles Only', color='green')
-    ax.bar([pos + bar_width for pos in bar_positions], total_cost_added, width=bar_width, label='Without Profiles', color='orange')
-
+    ax.bar([pos - bar_width for pos in bar_positions], percentage_recal_clustered, width=bar_width,
+           label='Clustered Profiles', color=sns.color_palette("Set2")[0])
+    ax.bar(bar_positions, percentage_recal, width=bar_width, label='Profiles Only', color=sns.color_palette("Set2")[2])
+    ax.bar([pos + bar_width for pos in bar_positions], percentage_added, width=bar_width, label='Without Profiles',
+           color=sns.color_palette("Set2")[3])
     # Add percentages on each bar for each dataframe with reduced text size
     for pos, percentage in zip(bar_positions, percentage_recal_clustered):
         ax.text(pos - bar_width, total_cost_recal_clustered[pos] + 2, f'{percentage:.2f}%', ha='center', va='bottom',
-                color='blue', fontsize=8)
+                color='black', fontsize=8)
 
     for pos, percentage in zip(bar_positions, percentage_recal):
-        ax.text(pos, total_cost_recal[pos] + 2, f'{percentage:.2f}%', ha='center', va='bottom', color='green',
+        ax.text(pos, total_cost_recal[pos] + 2, f'{percentage:.2f}%', ha='center', va='bottom', color='black',
                 fontsize=8)
 
     for pos, percentage in zip(bar_positions, percentage_added):
         ax.text(pos + bar_width, total_cost_added[pos] + 2, f'{percentage:.2f}%', ha='center', va='bottom',
-                color='orange', fontsize=8)
+                color='black', fontsize=8)
 
     ax.set_xticks(bar_positions)
     ax.set_xticklabels(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])

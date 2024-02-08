@@ -69,4 +69,5 @@ num_clusters = 5
 # Assign colors to clusters
 cluster_colors = ['#FF5733', '#33FF57', '#5733FF', '#FF33E6', '#33E6FF']
 # '#FF0233', '#33FF98', '#8803FF', '#FF3188', '#88FF33']
-
+output_json_path = r"00_Resources/profile_results/routes.json"
+output_json_path_C = r"00_Resources/profile_results/routes_cluster.json"
