@@ -1,0 +1,2 @@
+Instanzname;no_MR_Wochen;BaB;AF_Nodes;Anzahl_AF_Nodes;MR_Nodes;Anzahl_MR_Nodes;Anzahl_MR_Tours;MR_Kosten_Woche;MR_Nodes_Kosten_vorher;MR_Nodes_Kosten_nacher;Alle_Nodes_voher;Alle_Nodes_nachher;Einsparung_alle;Einsparung_MR_Nodes
+1-0.75-0.75-SZ15Multi1Veh_cap13-600-1800;[];True;[];0;[1016, 1062, 1065, 1068, 1204, 1236];6;6;1268.9522682182503;47631.15285;34060.418292456256;581116.1641305;567545.4295729562;0.02335287743690495;0.28491299801792946

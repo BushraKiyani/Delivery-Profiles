@@ -1,0 +1,73 @@
+# config/default.yaml
+
+project:
+  name: delivery-pattern-optimization
+  version: 1.0.0
+
+paths:
+  data:
+    raw: data/raw
+    processed: data/processed
+    outputs: outputs
+  cache:
+    coordinates: cache/coordinates.json
+
+run_naming:
+  enabled: true
+  format: "minF{min_frequency}_varW{var_weight_max}_varF{var_frequency_max}"
+
+preprocessing:
+  write_preprocessed_csv: false
+
+geocoding:
+  provider: nominatim
+  base_url: https://asca-rest.lfo.tu-dortmund.de/nominatim/search.php
+  rate_limit_seconds: 1.0
+  timeout_seconds: 20
+  use_cache: true
+
+distance_matrix:
+  mode: load   # compute | load
+
+  # Used when mode: compute
+  osrm:
+    base_url: "https://asca-rest.lfo.tu-dortmund.de/osrm/table/v1/driving/"
+    chunk_size: 100
+    rate_limit_seconds: 0.2
+    timeout_seconds: 60
+    symmetrize: false
+
+  # Used when mode: load
+  load:
+    shipments_with_distances: "data/interim/shipments_with_distances.csv"
+    distances_rr: "data/interim/distances_rr.csv"
+    durations_rr: "data/interim/durations_rr.csv"
+    euclidean_rr: "data/interim/euclidean_rr.csv"
+    matrix_table: "data/interim/matrix_table.csv"
+
+
+cost_model:
+  tariff_type: matrix        # matrix | base_plus_ton
+  base_price: 0.0
+  price_per_ton: 0.0
+
+variability:
+  min_frequency: 2
+  var_weight_max: 1.33
+  var_frequency_max: 1.33
+
+pattern_assignment:
+  days: 5
+  time_limit_seconds: 180
+  round_border: 0.5
+
+clustering:
+  enabled: true
+  num_clusters: 4
+  random_state: 0
+
+maps:
+  enabled: true
+  provider: google_roadmap
+  zoom_start: 7
+  anonymize: true
