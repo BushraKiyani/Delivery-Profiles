@@ -252,6 +252,6 @@ Update `run_dir` inside the script to match your run folder.
 The repository intentionally does not include data or output folders.
 ## License
 
-No license file is currently included in this repository. Add a `LICENSE` file if you plan to distribute this project.
+No license.
 
 
