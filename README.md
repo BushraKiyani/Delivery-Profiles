@@ -2,178 +2,254 @@
 Delivery Profiles is a Python pipeline for analyzing shipment behavior and generating delivery patterns that can reduce freight cost volatility while preserving service quality.
 The project covers the complete flow from raw shipment records to optimized profile assignments, with optional clustering and map/plot outputs.
 
-## What the pipeline does
+The pipeline supports:
+- Geocoding with caching
+- Distance matrix computation (OSRM) or loading
+- Freight cost modeling
+- Variability filtering
+- Pattern optimization (OR-Tools)
+- Optional geographic clustering
+- Profile application to shipment schedules
+- Map and plot visualization
 
-At a high level, the pipeline runs these stages:
-1. **Preprocessing**
-   - Normalizes and renames shipment columns.
-   - Cleans recipient addresses (street/city/house number normalization).
-   - Handles date and numeric conversions.
-     
-2. **Geocoding**
-   - Geocodes recipient addresses via a configurable Nominatim-compatible endpoint.
-   - Uses a local JSON cache to avoid repeated API calls.
+## High-Level Workflow
+The pipeline runs the following stages:
 
-3. **Distance matrix**
-   - Either computes route-distance/duration matrices via OSRM, or loads precomputed matrices from CSV.
+### 1. Preprocessing
+- Column normalization
+- Address cleaning
+- Date & numeric conversions
+- Standardized schema output
 
-4. **Cost modeling**
-   - Adds freight costs using either:
-     - a tariff matrix, or
-     - a base+tonnage model.
+### 2. Geocoding
+- Uses a Nominatim-compatible endpoint
+- Stores coordinates in a JSON cache
+- Avoids repeated API calls
 
-5. **Variability analysis**
-   - Determines which recipients are eligible for profile optimization based on frequency and variability thresholds.
+### 3. Distance Matrix
 
-6. **Pattern assignment**
-   - Assigns weekday delivery patterns (non-clustered).
-   - Optionally performs clustered assignment as a second optimization mode.
+Two modes:
+- **compute** → OSRM route matrix calculation
+- **load** → load precomputed CSV matrices
 
-7. **Profile application**
-   - Applies assigned patterns to shipment schedules.
-   - Writes pattern-only, unchanged, and combined shipment outputs.
+Also computes Euclidean (Haversine) distances.
 
-8. **Outputs and visualization**
-   - Organizes results in run-specific folders.
-   - Optionally generates cluster maps and weekday plot PDFs.
+### 4. Cost Modeling
 
-## Repository structure
+Adds freight cost via:
+- Tariff matrix lookup
+- Base + tonnage model
+
+### 5. Variability Analysis
+
+Filters recipients by:
+- Minimum shipment frequency
+- Weight variability threshold
+- Frequency variability threshold
+
+### 6. Pattern Assignment
+
+- Non-clustered optimization (always runs)
+- Optional clustered optimization (KMeans + shared patterns)
+- Uses OR-Tools internally (knapsack-style demand smoothing)
+
+### 7. Profile Application
+
+- Applies optimized weekday patterns
+- Produces:
+  - pattern-only shipments
+  - unchanged shipments
+  - combined shipment dataset
+
+### 8. Post-Cost Recalculation (Optional)
+
+Recomputes freight costs after profile application.
+
+### 9. Maps & Visualization (Optional)
+
+- Cluster map (Folium HTML)
+- Weekday demand comparison plots (PDF)
+
+---
+
+## Repository Structure
 
 ```text
 .
 ├── config/
-│   └── default.yaml           # Main pipeline configuration
+│   └── default.yaml
 ├── scripts/
-│   ├── run_pipeline.py        # CLI entry point for end-to-end run
-│   └── make_plots.py          # Example script to create weekday plot PDF
+│   ├── run_pipeline.py
+│   └── make_plots.py
 ├── src/delivery_profiles/
-│   ├── pipeline.py            # Pipeline orchestration
-│   ├── preprocessing.py       # Data cleaning and normalization
-│   ├── geo.py                 # Geocoding + coordinate cache
-│   ├── distance_matrix.py     # OSRM matrix compute/load helpers
-│   ├── cost_model.py          # Freight cost calculations
-│   ├── variability.py         # Variability/frequency filtering
-│   ├── pattern_assignment.py  # Non-clustered profile assignment
+│   ├── pipeline.py
+│   ├── preprocessing.py
+│   ├── geo.py
+│   ├── distance_matrix.py
+│   ├── cost_model.py
+│   ├── variability.py
+│   ├── pattern_assignment.py
 │   ├── clustered_pattern_assignment.py
-│   ├── profile_application.py # Apply profiles to shipments
-│   ├── maps.py                # Folium HTML map output
-│   └── weekday_plots.py       # PDF weekday plot generation
-└── pyproject.toml
+│   ├── profile_application.py
+│   ├── maps.py
+│   └── weekday_plots.py
+├── pyproject.toml
+└── README.md
 ```
 
 ## Requirements
 
-- Python **3.9+**
-- `pip` or another Python package manager
+- Python 3.9+
+- pip / venv
 
-Core libraries used by the project include:
+Core dependencies:
 
-- `pandas`, `numpy`
-- `requests`, `PyYAML`
-- `scikit-learn`
-- `ortools`
-- `matplotlib`
-- `folium`
-- `roman`, `textdistance`
+- pandas
+- numpy
+- scikit-learn
+- ortools
+- requests
+- PyYAML
+- matplotlib
+- folium
 
-> Note: `pyproject.toml` currently defines project metadata but does not list runtime dependencies. Install required packages manually (or add them to your environment manager of choice).
+Install manually:
+
+```bash
+pip install pandas numpy scikit-learn ortools requests pyyaml matplotlib folium
+```
 
 ## Installation
 
-From the repository root:
-
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install --upgrade pip
 pip install -e .
-pip install pandas numpy requests pyyaml scikit-learn ortools matplotlib folium roman textdistance
+pip install pandas numpy scikit-learn ortools requests pyyaml matplotlib folium
 ```
 
 ## Configuration
 
-Default configuration is in:
-
+Main config file:
 - `config/default.yaml`
+  
+Important sections:
 
-Key sections:
+### `paths`
+Defines raw data, output, and cache locations.
 
-- `paths`: raw/processed/output and cache locations
-- `run_naming`: controls automatic run folder naming
-- `geocoding`: endpoint, timeouts, rate limiting, cache usage
-- `distance_matrix`: choose `compute` (OSRM) or `load` (CSV files)
-- `cost_model`: tariff mode (`matrix` or `base_plus_ton`)
-- `variability`: thresholds for recipient eligibility
-- `pattern_assignment`: optimization settings
-- `clustering`: toggle and cluster count
-- `maps`: map generation settings
+### `run_naming`
+Automatically creates run-specific output folders.
+Example:
+`outputs/runs/minF2_varW0.75_varF0.75/`
 
-## Running the pipeline
+### `geocoding`
+- endpoint
+- rate limit
+- timeout
+- cache usage
 
-Use the CLI script:
+### `distance_matrix`
+- `mode: compute | load`
+- OSRM settings (if compute)
+- CSV paths (if load)
+
+### `cost_model`
+- `tariff_type: matrix | base_plus_ton`
+
+### `variability`
+- `min_frequency`
+- `var_weight_max`
+- `var_frequency_max`
+
+### `pattern_assignment`
+- optimization days
+- time limit
+- rounding border
+
+### `clustering`
+- `enabled: true | false`
+- number of clusters
+
+### `maps`
+- `enabled: true | false`
+- `provider: osm | google_roadmap | google_satellite`
+
+## Running the Pipeline
+
+From project root:
 
 ```bash
 python scripts/run_pipeline.py \
   --config config/default.yaml \
-  --shipments path/to/shipments.csv \
-  --tariff path/to/tariff_matrix.csv \
+  --shipments data/raw/shipments.csv \
+  --tariff data/raw/tariff_matrix.csv \
   --sender-lon 7.4653 \
   --sender-lat 51.5136
 ```
 
-### Arguments
-- `--config` (optional): path to YAML config (default `config/default.yaml`)
-- `--shipments` (required): shipment CSV input
-- `--tariff` (optional): tariff matrix CSV (required when `cost_model.tariff_type=matrix`)
-- `--sender-lon` / `--sender-lat` (required): depot coordinates
+### Required Arguments
 
-### Input CSV expectations
+- `--shipments`
+- `--sender-lon`
+- `--sender-lat`
 
-The preprocessing stage supports several historical column variants and maps them to standardized names (e.g., `Recipient_ID`, `Recipient_Street`, `Recipient_City`, `Weight`, `Loading_Date`).
+Required if `tariff_type = matrix`:
 
-For best results, ensure shipment data includes:
+- `--tariff`
 
-- recipient identifier and address fields
-- loading date
-- weight
-- sender city (for some distance/cost routines)
+## Output Structure
 
-## Output layout
+When `run_naming` is enabled:
 
-When `run_naming.enabled` is true, outputs are written to:
+```text
+outputs/
+└── runs/
+    └── minF2_varW0.75_varF0.75/
+        ├── shipments_with_coords.csv
+        ├── shipments_with_distances.csv
+        ├── shipments_with_costs.csv
+        ├── variability.csv
+        ├── profile_assignment.csv
+        ├── profile_assignment_clustered.csv
+        ├── shipments_after_profiles_*.csv
+        ├── matrices/
+        ├── plots/
+        └── maps/
+```
 
-- `outputs/runs/minF{...}_varW{...}_varF{...}/`
+Each threshold configuration produces a separate run folder.
 
-Typical artifacts include:
+No outputs are overwritten.
 
-- `preprocessed_shipments.csv`
-- `shipments_with_coords.csv`
-- distance matrices in `matrices/`
-- `shipments_with_costs.csv`
-- `profiles_nonclustered.csv`
-- `profiles_clustered.csv` (if clustering enabled)
-- profile-applied shipment outputs (`pattern_only`, `unchanged`, combined)
-- plots and map HTML files
+## Maps
 
-## Generate weekday plots (optional)
+Cluster maps are generated as:
 
-The helper script `scripts/make_plots.py` demonstrates how to build a PDF of weekday demand/comparison plots from one run directory.
+`outputs/runs/<run_id>/maps/cluster_map_*.html`
 
-If you use it, update `run_dir` inside the script to match your target run path before executing.
+They are interactive Folium maps.
 
-## Development notes
+Supports:
 
-- Project package: `delivery_profiles`
-- Main orchestration entry: `delivery_profiles.pipeline.run_pipeline_from_config`
-- Config loader: `delivery_profiles.config.load_config`
+- OpenStreetMap
+- Google roadmap (if configured)
+- Google satellite (if configured)
 
-## Troubleshooting
+## Generate Weekday Plot PDF
 
-- **Geocoding is slow or rate-limited**: increase cache usage and adjust `geocoding.rate_limit_seconds`.
-- **No tariff file error**: provide `--tariff` when using matrix pricing.
-- **Missing distance files in load mode**: verify `distance_matrix.load.*` paths exist.
-- **Map generation issues**: disable maps (`maps.enabled: false`) to isolate pipeline logic.
+Use:
 
+```bash
+python scripts/make_plots.py
+```
+
+Update `run_dir` inside the script to match your run folder.
+
+## GitHub Note
+
+The repository intentionally does not include data or output folders.
 ## License
 
 No license file is currently included in this repository. Add a `LICENSE` file if you plan to distribute this project.
