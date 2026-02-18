@@ -157,6 +157,8 @@ Example:
 
 ### `cost_model`
 - `tariff_type: matrix | base_plus_ton`
+If `tariff_type = base_plus_ton`, freight cost is calculated as:
+Freight Cost = Base Price + (Weight in tons × Price per ton)
 
 ### `variability`
 - `min_frequency`
