@@ -1,9 +1,0 @@
-# config/local.yaml  (DO NOT COMMIT)
-
-paths:
-  data:
-    raw: /home/bushra/private_data/raw
-    processed: /home/bushra/private_data/processed
-
-geocoding:
-  rate_limit_seconds: 0.5   # faster locally if allowed

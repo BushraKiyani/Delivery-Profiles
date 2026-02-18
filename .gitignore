@@ -117,3 +117,14 @@ dmypy.json
 /Resources/Maps/
 
 /Resources/
+/legacy
+
+config/local.yaml
+data/interim
+data/raw
+
+outputs/runs
+cache/coordinates.json
+
+
+
