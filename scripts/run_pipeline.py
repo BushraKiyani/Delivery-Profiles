@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-
 import pandas as pd
 
 from delivery_profiles.config import load_config
@@ -26,7 +25,6 @@ def main() -> None:
     shipments_path = Path(args.shipments)
     if not shipments_path.exists():
         raise FileNotFoundError(f"Shipments file not found: {shipments_path}")
-
     shipments = pd.read_csv(shipments_path, sep=";", encoding="latin1")
 
     tariff_matrix = None
@@ -44,22 +42,9 @@ def main() -> None:
         cfg=cfg,
     )
 
-    # scripts/run_pipeline.py  (only the part after calling run_pipeline_from_config)
-
-    out_dir = Path(results["out_dir"])  # pipeline returns this now
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    # always write non-clustered profiles
-    profiles_nc = results.get("profiles_nonclustered")
-    if profiles_nc is not None and not profiles_nc.empty:
-        profiles_nc.to_csv(out_dir / "profiles_nonclustered.csv", sep=";", encoding="latin1", decimal=".", index=False)
-
-    # write clustered if enabled & produced
-    profiles_c = results.get("profiles_clustered")
-    if profiles_c is not None and not profiles_c.empty:
-        profiles_c.to_csv(out_dir / "profiles_clustered.csv", sep=";", encoding="latin1", decimal=".", index=False)
-
+    out_dir = Path(results["out_dir"])
     print("Done. Outputs written to:", out_dir)
+
 
 if __name__ == "__main__":
     main()
