@@ -13,6 +13,7 @@ from .pattern_assignment import assign_patterns, PatternAssignmentConfig
 from .clustered_pattern_assignment import assign_clustered_patterns, ClusteredPatternAssignmentConfig
 from .cost_model import CostModelConfig, add_freight_costs
 from .profile_application import apply_profiles_to_shipments, ProfileApplicationConfig
+from .routing_vrp import route
 from .maps import create_cluster_map_html, MapConfig
 
 
@@ -153,6 +154,7 @@ def run_pipeline_from_config(
     dist_mode = str(dist_yaml.get("mode", "compute")).lower()
 
     distances_RR = durations_RR = euclidean_RR = matrix_table = None
+    durations_rr_path: Optional[Path] = None
     df_with_sender_distances: pd.DataFrame
 
     if dist_mode == "compute":
@@ -180,6 +182,7 @@ def run_pipeline_from_config(
             save_df_with_distances=out_dir / "shipments_with_distances.csv",
             symmetrize_osrm=bool(osrm_yaml.get("symmetrize", False)),
         )
+        durations_rr_path = matrices_dir / "durations_rr.csv"
 
     elif dist_mode == "load":
         load_cfg = dist_yaml.get("load", {}) or {}
@@ -201,6 +204,7 @@ def run_pipeline_from_config(
         p = load_cfg.get("durations_rr")
         if p:
             durations_RR = _read_matrix_csv(Path(str(p)))
+            durations_rr_path = Path(str(p))
         p = load_cfg.get("euclidean_rr")
         if p:
             euclidean_RR = _read_matrix_csv(Path(str(p)))
@@ -404,7 +408,29 @@ def run_pipeline_from_config(
 
 
     # ----------------------------
-    # 8) Maps
+    # 8) Routing (optional)
+    # ----------------------------
+    routing_yaml = cfg.get("routing", {}) or {}
+    if bool(routing_yaml.get("enabled", False)):
+        if durations_rr_path is None or not durations_rr_path.exists():
+            print("Warning: routing.enabled=true but durations_rr matrix not available; skipping routing.")
+        else:
+            route(
+                df_added_freightcost=df_costed,
+                df_assigned_profile=pattern_only_nc,
+                duration_matrix_path=str(durations_rr_path),
+                output_json_path=str(out_dir / "routes.json"),
+            )
+            if do_clustered and pattern_only_c is not None:
+                route(
+                    df_added_freightcost=df_costed,
+                    df_assigned_profile=pattern_only_c,
+                    duration_matrix_path=str(durations_rr_path),
+                    output_json_path=str(out_dir / "routes_cluster.json"),
+                )
+
+    # ----------------------------
+    # 9) Maps
     # ----------------------------
     maps_yaml = cfg.get("maps", {}) or {}
     if bool(maps_yaml.get("enabled", True)) and coords_clustered is not None and profiles_c is not None:
