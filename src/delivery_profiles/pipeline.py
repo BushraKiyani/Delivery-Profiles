@@ -131,7 +131,7 @@ def run_pipeline_from_config(
     # ----------------------------
     geo_yaml = cfg.get("geocoding", {}) or {}
     geo_cfg = GeoConfig(
-        base_url=str(geo_yaml.get("base_url")),
+        base_url=str(geo_yaml.get("base_url") or GeoConfig().base_url),
         rate_limit_seconds=float(geo_yaml.get("rate_limit_seconds", 1.0)),
         timeout_seconds=int(geo_yaml.get("timeout_seconds", 20)),
     )
@@ -162,7 +162,6 @@ def run_pipeline_from_config(
             chunk_size=int(osrm_yaml.get("chunk_size", OSRMConfig().chunk_size)),
             rate_limit_seconds=float(osrm_yaml.get("rate_limit_seconds", OSRMConfig().rate_limit_seconds)),
             timeout_seconds=int(osrm_yaml.get("timeout_seconds", OSRMConfig().timeout_seconds)),
-            symmetrize=bool(osrm_yaml.get("symmetrize", False)),
         )
 
         distances_RR, durations_RR, euclidean_RR, matrix_table, df_with_sender_distances = create_distance_matrices(
