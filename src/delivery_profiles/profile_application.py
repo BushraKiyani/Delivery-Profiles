@@ -129,23 +129,22 @@ def apply_profiles_to_shipments(
                 total_w = float(buffer_df[cfg.weight_col].sum())
                 total_cost = float(buffer_df[cfg.freight_cost_col].sum())
 
-                # if you want to strictly enforce max truck weight, you'd split here.
-                # for now we keep your original "ship what is in buffer" behavior.
-                out_rows.append(
-                    {
-                        cfg.recipient_col: rid,
-                        cfg.shipment_id_col: buffer_df[cfg.shipment_id_col].tolist(),
-                        cfg.loading_date_col: ship_day,
-                        cfg.weekday_col: weekday,
-                        cfg.weight_col: total_w,
-                        cfg.distance_col: float(buffer_df[cfg.distance_col].iloc[0]),
-                        cfg.freight_cost_col: total_cost,
-                        "Frequency": freq,
-                        "Pattern": pat_idx,
-                        "Pattern_clear": pattern,
-                    }
-                )
-                buffer_df = pd.DataFrame(columns=df_r.columns)
+                if total_w <= cfg.max_truck_weight:
+                    out_rows.append(
+                        {
+                            cfg.recipient_col: rid,
+                            cfg.shipment_id_col: buffer_df[cfg.shipment_id_col].tolist(),
+                            cfg.loading_date_col: ship_day,
+                            cfg.weekday_col: weekday,
+                            cfg.weight_col: total_w,
+                            cfg.distance_col: float(buffer_df[cfg.distance_col].iloc[0]),
+                            cfg.freight_cost_col: total_cost,
+                            "Frequency": freq,
+                            "Pattern": pat_idx,
+                            "Pattern_clear": pattern,
+                        }
+                    )
+                    buffer_df = pd.DataFrame(columns=df_r.columns)
 
     pattern_only = pd.DataFrame(out_rows)
 
