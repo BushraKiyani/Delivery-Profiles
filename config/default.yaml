@@ -17,10 +17,9 @@ run_naming:
   format: "minF{min_frequency}_varW{var_weight_max}_varF{var_frequency_max}"
 
 preprocessing:
-  write_preprocessed_csv: false
+  write_preprocessed_csv: false   # set true to save cleaned shipments before geocoding
 
 geocoding:
-  provider: nominatim
   base_url: https://asca-rest.lfo.tu-dortmund.de/nominatim/search.php
   rate_limit_seconds: 1.0
   timeout_seconds: 20
@@ -45,7 +44,6 @@ distance_matrix:
     euclidean_rr: "data/interim/euclidean_rr.csv"
     matrix_table: "data/interim/matrix_table.csv"
 
-
 cost_model:
   tariff_type: matrix        # matrix | base_plus_ton
   base_price: 0.0
@@ -66,8 +64,17 @@ clustering:
   num_clusters: 4
   random_state: 0
 
+post_cost_recalc:
+  enabled: true   # recompute freight costs after profile application
+
+routing:
+  enabled: false  # set true to run VRP route optimization; requires durations_rr matrix
+
 maps:
   enabled: true
-  provider: google_roadmap
+  provider: google_roadmap   # osm | google_roadmap | google_satellite
   zoom_start: 7
   anonymize: true
+
+plots:
+  enabled: true   # set false to skip weekday plots and freight cost comparison PDFs
