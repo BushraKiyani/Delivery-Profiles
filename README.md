@@ -1,6 +1,16 @@
 # Delivery Profiles
-Delivery Profiles is a Python pipeline for analyzing shipment behavior and generating delivery patterns that can reduce freight cost volatility while preserving service quality.
-The project covers the complete flow from raw shipment records to optimized profile assignments, with optional clustering and map/plot outputs.
+
+A production-grade Python pipeline that transforms raw shipment records into optimized delivery schedules — reducing freight cost volatility while preserving service quality.
+
+Built across 9 modular stages: ingestion → geocoding → distance matrix → cost modelling → variability filtering → OR-Tools optimization → clustering → profile application → visualization.
+
+**Stack:** Python · pandas · OR-Tools · scikit-learn · OSRM · Folium · YAML config · Docker-ready
+
+**Key outputs:**
+- Optimized weekday delivery profiles per recipient
+- Before/after freight cost comparison
+- Interactive cluster maps (Folium HTML)
+- Weekday demand visualizations (PDF)
 
 The pipeline supports:
 - Geocoding with caching
