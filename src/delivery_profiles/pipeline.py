@@ -15,12 +15,86 @@ from .cost_model import CostModelConfig, add_freight_costs
 from .profile_application import apply_profiles_to_shipments, ProfileApplicationConfig
 from .routing_vrp import route
 from .maps import create_cluster_map_html, MapConfig
-from .weekday_plots import write_weekday_plots_pdf, write_freight_cost_comparison_pdf
+from .weekday_plots import write_weekday_plots_pdf, write_freight_cost_comparison_pdf, write_weight_distribution_pdf, write_pipeline_summary
 
 
 # -----------------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------------
+
+def _log_overweight_check(
+    profiles: pd.DataFrame,
+    df_var: pd.DataFrame,
+    max_truck_weight: float,
+    label: str = "",
+) -> None:
+    """
+    Print a pre-run summary of profiled recipients whose average buffer weight
+    per pattern day exceeds max_truck_weight.  These will be split into multiple
+    trucks at apply time rather than skipped.
+    """
+    if profiles.empty or "avg_Weight" not in df_var.columns:
+        return
+
+    merged = profiles[["Recipient_ID", "Frequency"]].merge(
+        df_var[["Recipient_ID", "avg_Weight"]], on="Recipient_ID", how="left"
+    )
+    merged["avg_kg_per_day"] = (
+        pd.to_numeric(merged["avg_Weight"], errors="coerce")
+        / merged["Frequency"].clip(lower=1)
+    )
+    heavy = merged[merged["avg_kg_per_day"] > max_truck_weight].copy()
+
+    tag = f" ({label})" if label else ""
+    if heavy.empty:
+        print(f"[Overweight check{tag}]  All {len(profiles)} profiled recipients fit within"
+              f" {max_truck_weight:,.0f} kg/pattern day — no splitting needed.\n")
+        return
+
+    # ceiling: trucks needed per day
+    heavy["est_trucks"] = (heavy["avg_kg_per_day"] / max_truck_weight).apply(
+        lambda x: int(-(-x // 1))
+    )
+    print(
+        f"\n[Overweight check{tag}]  {len(heavy)}/{len(profiles)} profiled recipient(s)"
+        f" will need multi-truck splitting (avg load > {max_truck_weight:,.0f} kg/pattern day):"
+    )
+    for _, row in heavy.sort_values("avg_kg_per_day", ascending=False).iterrows():
+        print(
+            f"  Recipient {int(row['Recipient_ID'])}: freq={int(row['Frequency'])},"
+            f" avg {row['avg_kg_per_day']:,.0f} kg/day"
+            f" → ~{int(row['est_trucks'])} truck(s)/day"
+        )
+    print()
+
+def _write_tableau_export(
+    *,
+    df_original: pd.DataFrame,
+    df_profiled: "pd.DataFrame | None",
+    df_clustered: "pd.DataFrame | None",
+    out_path: Path,
+) -> None:
+    """Concatenate all scenarios into one CSV with a Scenario column for Tableau."""
+    parts = []
+    for df, label in [
+        (df_original,  "Without Profiles"),
+        (df_profiled,  "Profiles Only"),
+        (df_clustered, "Clustered Profiles"),
+    ]:
+        if df is None or df.empty:
+            continue
+        chunk = df.copy()
+        chunk["Scenario"] = label
+        parts.append(chunk)
+
+    if not parts:
+        return
+
+    combined = pd.concat(parts, ignore_index=True)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    combined.to_csv(out_path, sep=";", encoding="latin-1", decimal=".", index=False)
+    print(f"[Tableau export]  {len(combined):,} rows → {out_path}")
+
 
 def _ensure_dir(p: Path) -> None:
     p.mkdir(parents=True, exist_ok=True)
@@ -303,10 +377,16 @@ def run_pipeline_from_config(
         save_path=out_dir / "profile_assignment.csv",
     )
 
+    prof_app_yaml = cfg.get("profile_application", {}) or {}
+    _app_cfg = ProfileApplicationConfig(
+        max_truck_weight=float(prof_app_yaml.get("max_truck_weight", 25000.0)),
+    )
+    _log_overweight_check(profiles_nc, df_var, _app_cfg.max_truck_weight, label="non-clustered")
+
     pattern_only_nc, unchanged_nc, shipments_after_nc = apply_profiles_to_shipments(
         df_costed,
         profiles_nc,
-        ProfileApplicationConfig(),
+        _app_cfg,
     )
 
     suffix_nc = _suffix_from_variability(v_yaml, clustered=False)
@@ -382,10 +462,12 @@ def run_pipeline_from_config(
         )
         coords_clustered.to_csv(out_dir / "coords_clustered.csv", index=False)
 
+        _log_overweight_check(profiles_c, df_var, _app_cfg.max_truck_weight, label="clustered")
+
         pattern_only_c, unchanged_c, shipments_after_c = apply_profiles_to_shipments(
             df_costed,
             profiles_c,
-            ProfileApplicationConfig(),
+            _app_cfg,
         )
 
         suffix_c = _suffix_from_variability(v_yaml, clustered=True)
@@ -502,12 +584,54 @@ def run_pipeline_from_config(
         df_clustered_for_plot = None
         if do_clustered and shipments_after_c is not None:
             df_clustered_for_plot = shipments_after_c_costed if shipments_after_c_costed is not None else shipments_after_c
+
+        # Union of all profiled IDs for the subset page (page 2 of the PDF)
+        _profiled_ids: set[int] = set(profiles_nc["Recipient_ID"].astype(int).tolist())
+        if do_clustered and profiles_c is not None:
+            _profiled_ids |= set(profiles_c["Recipient_ID"].astype(int).tolist())
+
         write_freight_cost_comparison_pdf(
             df_original=df_costed,
             df_profiled=df_profiled_for_plot,
             df_clustered=df_clustered_for_plot,
             out_pdf=plots_dir / "freight_cost_comparison.pdf",
+            profiled_ids=_profiled_ids,
         )
+
+        write_weight_distribution_pdf(
+            df_original=df_costed,
+            df_profiled=df_profiled_for_plot,
+            df_clustered=df_clustered_for_plot,
+            out_pdf=plots_dir / "weight_distribution_comparison.pdf",
+            profiled_ids=_profiled_ids,
+        )
+
+        write_pipeline_summary(
+            df_original=df_costed,
+            df_profiled=df_profiled_for_plot,
+            df_clustered=df_clustered_for_plot,
+            df_var=df_var,
+            profiled_ids=_profiled_ids,
+            pattern_only_nc=pattern_only_nc,
+            pattern_only_c=pattern_only_c,
+            var_weight_max=var_weight_max,
+            var_frequency_max=var_frequency_max,
+            min_frequency=min_frequency,
+            max_truck_weight=_app_cfg.max_truck_weight,
+            plots_dir=plots_dir,
+        )
+
+    # ----------------------------
+    # Tableau export
+    # ----------------------------
+    _tableau_profiled  = shipments_after_nc_costed if shipments_after_nc_costed is not None else shipments_after_nc
+    _tableau_clustered = shipments_after_c_costed  if (do_clustered and shipments_after_c_costed is not None) else (shipments_after_c if do_clustered else None)
+    _write_tableau_export(
+        df_original=df_costed,
+        df_profiled=_tableau_profiled,
+        df_clustered=_tableau_clustered,
+        out_path=out_dir / "tableau_export.csv",
+    )
 
     # ----------------------------
     # Return (useful for notebooks/tests)
@@ -515,6 +639,7 @@ def run_pipeline_from_config(
     return {
         "out_dir": str(out_dir),
         "run_id": out_dir.name,
+        "tableau_export": str(out_dir / "tableau_export.csv"),
 
         "shipments_preprocessed": df_pre,
         "shipments_with_coords": df_coords,

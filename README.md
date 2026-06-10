@@ -90,6 +90,74 @@ Vehicle routing via OR-Tools VRP solver. Groups consolidated shipments by weekda
 
 ---
 
+## Algorithms & Optimization
+
+### MIP Pattern Assignment
+
+Each eligible recipient is assigned one delivery pattern from a fixed library of 21 binary Mon–Fri patterns, grouped by weekly frequency:
+
+| Frequency | Patterns | Example |
+|-----------|----------|---------|
+| 5/week | 1 | `[1,1,1,1,1]` (every day) |
+| 4/week | 5 | `[0,1,1,1,1]` … `[1,1,1,1,0]` (skip one day) |
+| 3/week | 5 | `[0,1,0,1,1]` … `[1,0,1,1,0]` |
+| 2/week | 5 | `[1,0,1,0,0]` … `[0,1,0,0,1]` |
+| 1/week | 5 | `[1,0,0,0,0]` … `[0,0,0,0,1]` (one fixed day) |
+
+The assignment is formulated as a Mixed Integer Program (MIP) solved with OR-Tools SCIP via `pywraplp`:
+
+- **Decision variables:** `x[j,m] ∈ {0,1}` — recipient `j` uses pattern `m`
+- **Objective:** minimise `s`, the peak daily shipped quantity across all five weekdays
+- **Constraints:**
+  - For each weekday `t`: the sum of demands from all recipients scheduled on day `t` must not exceed `s`
+  - Each recipient selects exactly one pattern
+
+Each recipient's **demand** is `round(avg_weight / avg_frequency)` and their **frequency** is `round_custom(AVG_Frequency, round_border)` clipped to [1, 5]. Before the solver runs, recipients are filtered to those whose weight CV ≤ `var_weight_max`, frequency CV ≤ `var_frequency_max`, and average shipments/week ≥ `min_frequency`.
+
+The effect is that the solver smooths total daily shipped quantity as evenly as possible across the working week, without prescribing which specific day any recipient receives.
+
+---
+
+### KMeans Clustering (Clustered Assignment)
+
+When `clustering.enabled: true`, recipients are grouped into geographic clusters before pattern assignment runs. Coordinates are converted to **radians** before passing to `sklearn.KMeans`, which makes the Euclidean distance in radian-space a closer proxy for great-circle distance than raw degree differences.
+
+The MIP is then extended with an additional constraint: all recipients in the same `(cluster, frequency)` group must share the same pattern. This is enforced via auxiliary binary variables `y[group, m]` with `x[j,m] == y[group,m]` for every member `j` of the group. The result is that geographically adjacent recipients with the same delivery frequency receive on the same days — reducing the number of distinct routes the depot needs to operate.
+
+---
+
+### Haversine Distance
+
+Two types of distance are computed for every recipient:
+
+1. **Euc_Distance** (sender → recipient, km) — attached to every shipment row and used as the distance input for tariff lookups
+2. **Recipient-to-recipient matrix** — full N×N matrix used by the VRP routing solver
+
+Both are computed with the Haversine formula (great-circle distance), implemented without an external library using NumPy broadcasting:
+
+```
+a = sin²(Δlat/2) + cos(lat₁)·cos(lat₂)·sin²(Δlon/2)
+d = 2·R·arcsin(√a),   R = 6371.0088 km
+```
+
+The vectorised `haversine_matrix_km` function computes the full N×N matrix in a single pass using NumPy broadcasting, avoiding a Python loop over pairs. When `distance_matrix.mode: compute` is used, OSRM road distances and durations are computed separately (chunked requests of up to 100 locations each) for routing and for the matrix table. The Haversine `Euc_Distance` is always computed regardless of mode.
+
+---
+
+### OR-Tools VRP Routing
+
+The routing step (`routing.enabled: true`) solves one independent Vehicle Routing Problem per weekday using OR-Tools `pywrapcp` (Constraint Solver, distinct from the MIP solver used above):
+
+- **Vehicles:** 5, all departing from and returning to the depot (node 0)
+- **Cost metric:** travel duration in seconds (from the precomputed OSRM `durations_rr` matrix)
+- **Duration constraint:** each vehicle's total route time must not exceed **8 hours (28 800 seconds)**
+- **First solution strategy:** `PATH_CHEAPEST_ARC` — greedily extends each partial route by the cheapest available arc
+- **Depot row/column:** sender-to-recipient durations from `df_added_freightcost["Duration"]` are inserted as row 0 and column 0 of the duration matrix so the depot is correctly represented as the origin and destination
+
+Each weekday is solved independently: the solver receives only the recipients whose consolidated profile includes that day, and produces a set of vehicle routes that cover all of them within the 8-hour limit. Solutions are appended to `routes.json` (one entry per weekday).
+
+---
+
 ## Repository Structure
 
 ```text

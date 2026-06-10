@@ -7,6 +7,38 @@ import pandas as pd
 from .pattern_assignment import PAT
 
 
+def _chunk_buffer(
+    buffer_df: pd.DataFrame,
+    max_weight: float,
+    weight_col: str,
+) -> List[pd.DataFrame]:
+    """
+    Greedy first-fit split of a buffer into weight-bounded truck loads.
+
+    Rows are packed in order; a new chunk is started whenever adding the next
+    row would exceed max_weight.  A single row heavier than max_weight on its
+    own still forms its own (oversized) chunk — it cannot be split further.
+    """
+    chunks: List[pd.DataFrame] = []
+    current_rows: List[Any] = []
+    current_w = 0.0
+
+    for _, row in buffer_df.iterrows():
+        row_w = float(row[weight_col])
+        if current_w + row_w > max_weight and current_rows:
+            chunks.append(pd.DataFrame(current_rows))
+            current_rows = [row]
+            current_w = row_w
+        else:
+            current_rows.append(row)
+            current_w += row_w
+
+    if current_rows:
+        chunks.append(pd.DataFrame(current_rows))
+
+    return chunks
+
+
 @dataclass(frozen=True)
 class ProfileApplicationConfig:
     recipient_col: str = "Recipient_ID"
@@ -115,6 +147,8 @@ def apply_profiles_to_shipments(
 
         pattern = PAT[freq][pat_idx]  # Mon..Fri (len=5)
         buffer_df = pd.DataFrame(columns=df_r.columns)
+        _split_days = 0
+        _total_trucks = 0
 
         for _, crow in cal.iloc[::-1].iterrows():
             ship_day = pd.Timestamp(crow["Datum"])
@@ -127,7 +161,6 @@ def apply_profiles_to_shipments(
 
             if state == 1 and not buffer_df.empty:
                 total_w = float(buffer_df[cfg.weight_col].sum())
-                total_cost = float(buffer_df[cfg.freight_cost_col].sum())
 
                 if total_w <= cfg.max_truck_weight:
                     avg_delay = float(
@@ -141,14 +174,47 @@ def apply_profiles_to_shipments(
                             cfg.weekday_col: weekday,
                             cfg.weight_col: total_w,
                             cfg.distance_col: float(buffer_df[cfg.distance_col].iloc[0]),
-                            cfg.freight_cost_col: total_cost,
+                            cfg.freight_cost_col: float(buffer_df[cfg.freight_cost_col].sum()),
                             "Delay": avg_delay,
                             "Frequency": freq,
                             "Pattern": pat_idx,
                             "Pattern_clear": pattern,
+                            "Truck_Number": 1,
                         }
                     )
                     buffer_df = pd.DataFrame(columns=df_r.columns)
+                else:
+                    # Buffer exceeds one truck — split into max_truck_weight chunks
+                    chunks = _chunk_buffer(buffer_df, cfg.max_truck_weight, cfg.weight_col)
+                    for truck_num, chunk in enumerate(chunks, start=1):
+                        avg_delay = float(
+                            (pd.Timestamp(ship_day) - pd.to_datetime(chunk[cfg.loading_date_col])).dt.days.mean()
+                        )
+                        out_rows.append(
+                            {
+                                cfg.recipient_col: rid,
+                                cfg.shipment_id_col: chunk[cfg.shipment_id_col].tolist(),
+                                cfg.loading_date_col: ship_day,
+                                cfg.weekday_col: weekday,
+                                cfg.weight_col: float(chunk[cfg.weight_col].sum()),
+                                cfg.distance_col: float(chunk[cfg.distance_col].iloc[0]),
+                                cfg.freight_cost_col: float(chunk[cfg.freight_cost_col].sum()),
+                                "Delay": avg_delay,
+                                "Frequency": freq,
+                                "Pattern": pat_idx,
+                                "Pattern_clear": pattern,
+                                "Truck_Number": truck_num,
+                            }
+                        )
+                    _split_days += 1
+                    _total_trucks += len(chunks)
+                    buffer_df = pd.DataFrame(columns=df_r.columns)
+
+        if _split_days:
+            print(
+                f"[Profile application] Recipient {rid}:"
+                f" split into {_total_trucks} trucks on {_split_days} pattern days."
+            )
 
     pattern_only = pd.DataFrame(out_rows)
 

@@ -109,35 +109,17 @@ def filter_recipients(
     return out
 
 
-def build_parameters(
-    df_filtered: pd.DataFrame,
-    cfg: ClusteredPatternAssignmentConfig,
-    *,
-    freight_cost_col: str = "Freight_Cost",
-    shipments_col: str = "Shipments",
-) -> pd.DataFrame:
+def build_parameters(df_filtered: pd.DataFrame, cfg: ClusteredPatternAssignmentConfig) -> pd.DataFrame:
     """
     Frequency = round_custom(AVG_Frequency, 0.5)
-    Demand    = round(Freight_Cost / Shipments)  — avg freight cost per shipment.
-                Falls back to round(avg_Weight / AVG_Frequency) when cost columns absent.
+    Demand    = round(avg_Weight / AVG_Frequency)
     """
     out = df_filtered.copy()
 
     out["Frequency"] = out["AVG_Frequency"].apply(lambda x: round_custom(float(x), cfg.round_border))
     out["Frequency"] = out["Frequency"].clip(lower=1, upper=5)
 
-    use_cost = freight_cost_col in out.columns and shipments_col in out.columns
-
     def _demand(row) -> int:
-        if use_cost:
-            cost = float(row[freight_cost_col]) if not pd.isna(row[freight_cost_col]) else 0.0
-            n = float(row[shipments_col]) if not pd.isna(row[shipments_col]) else 0.0
-            if n > 0:
-                d = int(round(cost / n))
-                if cfg.enforce_min_demand_1 and cost > 0 and d == 0:
-                    return 1
-                return max(d, 0)
-        # fallback: weight-based demand
         f = float(row["AVG_Frequency"])
         w = float(row["avg_Weight"])
         if f <= 0 or np.isnan(f) or np.isnan(w):

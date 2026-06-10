@@ -54,9 +54,9 @@ cost_model:
   price_per_ton: 0.0
 
 variability:
-  min_frequency: 2
-  var_weight_max: 0.75
-  var_frequency_max: 0.75
+  min_frequency: 1
+  var_weight_max: 2
+  var_frequency_max: 2
 
 pattern_assignment:
   days: 5
@@ -67,6 +67,9 @@ clustering:
   enabled: true
   num_clusters: 5
   random_state: 0
+
+profile_application:
+  max_truck_weight: 25000   # kg; buffer chunks larger than this are split across multiple trucks
 
 post_cost_recalc:
   enabled: true   # recompute freight costs after profile application
