@@ -277,6 +277,26 @@ def run_pipeline_from_config(
         round_border=float(pat_yaml.get("round_border", 0.5)),
     )
 
+    # Coverage diagnostic: what share of freight cost will actually be optimised?
+    if "Freight_Cost" in df_var.columns and "Variability_Weight" in df_var.columns:
+        _total_cost = float(df_var["Freight_Cost"].sum())
+        if _total_cost > 0:
+            _mask = (
+                (pd.to_numeric(df_var["Variability_Weight"], errors="coerce") <= var_weight_max)
+                & (pd.to_numeric(df_var["Variability_Frequency"], errors="coerce") <= var_frequency_max)
+                & (pd.to_numeric(df_var["AVG_Frequency"], errors="coerce") >= min_frequency)
+            )
+            _profiled_cost = float(df_var.loc[_mask, "Freight_Cost"].sum())
+            _n_total = len(df_var)
+            _n_prof = int(_mask.sum())
+            print(
+                f"\n[Profile coverage]  {_n_prof}/{_n_total} recipients qualify"
+                f"  ({_profiled_cost:,.0f} / {_total_cost:,.0f} EUR"
+                f"  = {_profiled_cost / _total_cost * 100:.1f}% of freight cost)"
+                f"\n  thresholds: var_weight<={var_weight_max}, var_freq<={var_frequency_max},"
+                f" min_frequency>={min_frequency}\n"
+            )
+
     profiles_nc = assign_patterns(
         df_var,
         pa_cfg,
