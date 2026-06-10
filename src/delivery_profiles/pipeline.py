@@ -72,14 +72,16 @@ def _write_tableau_export(
     df_original: pd.DataFrame,
     df_profiled: "pd.DataFrame | None",
     df_clustered: "pd.DataFrame | None",
+    df_clustered_dbscan: "pd.DataFrame | None" = None,
     out_path: Path,
 ) -> None:
     """Concatenate all scenarios into one CSV with a Scenario column for Tableau."""
     parts = []
     for df, label in [
-        (df_original,  "Without Profiles"),
-        (df_profiled,  "Profiles Only"),
-        (df_clustered, "Clustered Profiles"),
+        (df_original,        "Without Profiles"),
+        (df_profiled,        "Profiles Only"),
+        (df_clustered,       "KMeans Clustered"),
+        (df_clustered_dbscan,"DBSCAN Clustered"),
     ]:
         if df is None or df.empty:
             continue
@@ -94,6 +96,198 @@ def _write_tableau_export(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     combined.to_csv(out_path, sep=";", encoding="latin-1", decimal=".", index=False)
     print(f"[Tableau export]  {len(combined):,} rows → {out_path}")
+
+
+_WDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+
+
+def _write_recipient_summary_csv(
+    *,
+    df_original: pd.DataFrame,
+    pattern_only_nc: pd.DataFrame,
+    pattern_only_c: "pd.DataFrame | None",
+    pattern_only_dbscan: "pd.DataFrame | None" = None,
+    profiles_nc: pd.DataFrame,
+    profiles_c: "pd.DataFrame | None",
+    profiles_dbscan: "pd.DataFrame | None" = None,
+    df_var: pd.DataFrame,
+    out_path: Path,
+) -> None:
+    """Per-recipient before/after CSV: one row per (recipient × scenario)."""
+    import ast
+
+    def _ensure_weekday(df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        if "Weekday" not in df.columns and "Loading_Date" in df.columns:
+            df["Weekday"] = pd.to_datetime(df["Loading_Date"], errors="coerce").dt.dayofweek
+        return df
+
+    def _parse_pattern(raw) -> list:
+        if isinstance(raw, list):
+            return raw
+        if isinstance(raw, str):
+            try:
+                return ast.literal_eval(raw)
+            except Exception:
+                pass
+        return []
+
+    # ── normalise df_original once ───────────────────────────────────────
+    orig = _ensure_weekday(df_original.copy())
+    orig["_rid"] = pd.to_numeric(orig["Recipient_ID"], errors="coerce").fillna(-1).astype(int)
+    if "Freight_Cost" not in orig.columns:
+        orig["Freight_Cost"] = 0.0
+    else:
+        orig["Freight_Cost"] = pd.to_numeric(orig["Freight_Cost"], errors="coerce").fillna(0.0)
+    if "Weight" not in orig.columns:
+        orig["Weight"] = 0.0
+    else:
+        orig["Weight"] = pd.to_numeric(orig["Weight"], errors="coerce").fillna(0.0)
+
+    # pre-compute "before" aggregates (scenario-independent)
+    orig_cost_by_rid  = orig.groupby("_rid")["Freight_Cost"].sum()
+    orig_wt_by_rid_day = (
+        orig.groupby(["_rid", "Weekday"])["Weight"].sum()
+        .unstack(fill_value=0.0)
+    )
+    orig_wdays_by_rid = orig.groupby("_rid")["Weekday"].apply(
+        lambda s: ",".join(
+            _WDAY_SHORT[d]
+            for d in sorted(s.dropna().astype(int).unique())
+            if 0 <= d <= 4
+        )
+    )
+
+    # variability lookup (keyed by int recipient id)
+    var_lut: dict = {}
+    if not df_var.empty:
+        _v = df_var.copy()
+        _v["_rid"] = pd.to_numeric(_v["Recipient_ID"], errors="coerce").fillna(-1).astype(int)
+        for _, r in _v.iterrows():
+            var_lut[int(r["_rid"])] = r
+
+    rows_out: list = []
+
+    for scenario_label, profiles, pattern_only in [
+        ("Profiles Only",      profiles_nc,      pattern_only_nc),
+        ("KMeans Clustered",   profiles_c,        pattern_only_c),
+        ("DBSCAN Clustered",   profiles_dbscan,   pattern_only_dbscan),
+    ]:
+        if profiles is None or profiles.empty:
+            continue
+        if pattern_only is None or pattern_only.empty:
+            continue
+
+        pat = _ensure_weekday(pattern_only.copy())
+        pat["_rid"] = pd.to_numeric(pat["Recipient_ID"], errors="coerce").fillna(-1).astype(int)
+        if "Freight_Cost" not in pat.columns:
+            pat["Freight_Cost"] = 0.0
+        else:
+            pat["Freight_Cost"] = pd.to_numeric(pat["Freight_Cost"], errors="coerce").fillna(0.0)
+        if "Weight" not in pat.columns:
+            pat["Weight"] = 0.0
+        else:
+            pat["Weight"] = pd.to_numeric(pat["Weight"], errors="coerce").fillna(0.0)
+
+        pat_cost_by_rid   = pat.groupby("_rid")["Freight_Cost"].sum()
+        pat_wt_by_rid_day = (
+            pat.groupby(["_rid", "Weekday"])["Weight"].sum()
+            .unstack(fill_value=0.0)
+        )
+        pat_max_truck = (
+            pat.groupby("_rid")["Truck_Number"].max()
+            if "Truck_Number" in pat.columns
+            else pd.Series(dtype=float)
+        )
+
+        # profile lookup (unique per recipient after pattern assignment)
+        prof_lut: dict = {}
+        for _, r in profiles.iterrows():
+            prof_lut[int(pd.to_numeric(r["Recipient_ID"], errors="coerce"))] = r
+
+        for rid in sorted(profiles["Recipient_ID"].dropna().astype(int).unique()):
+            # ── before ───────────────────────────────────────────────────
+            cost_before    = float(orig_cost_by_rid.get(rid, 0.0))
+            orig_wday_str  = str(orig_wdays_by_rid.get(rid, ""))
+
+            before_wt: dict = {}
+            for d in range(5):
+                val = 0.0
+                if rid in orig_wt_by_rid_day.index and d in orig_wt_by_rid_day.columns:
+                    val = float(orig_wt_by_rid_day.loc[rid, d])
+                before_wt[f"{_WDAY_SHORT[d]}_weight_before"] = val
+
+            # ── after ────────────────────────────────────────────────────
+            cost_after       = float(pat_cost_by_rid.get(rid, 0.0))
+            cost_change_eur  = cost_after - cost_before
+            cost_change_pct  = round((cost_change_eur / cost_before * 100.0) if cost_before else 0.0, 2)
+
+            after_wt: dict = {}
+            for d in range(5):
+                val = 0.0
+                if rid in pat_wt_by_rid_day.index and d in pat_wt_by_rid_day.columns:
+                    val = float(pat_wt_by_rid_day.loc[rid, d])
+                after_wt[f"{_WDAY_SHORT[d]}_weight_after"] = val
+
+            # ── truck splitting ──────────────────────────────────────────
+            max_trucks  = int(pat_max_truck.get(rid, 1)) if not pat_max_truck.empty else 1
+            truck_split = "yes" if max_trucks > 1 else "no"
+
+            # ── profile data ─────────────────────────────────────────────
+            p = prof_lut.get(rid, pd.Series())
+            freq          = int(float(p.get("Frequency", 0))) if not p.empty else 0
+            pattern_clear = p.get("Pattern_clear", "") if not p.empty else ""
+            parsed        = _parse_pattern(pattern_clear)
+            pattern_days  = ",".join(_WDAY_SHORT[i] for i, v in enumerate(parsed) if v == 1)
+
+            # ── variability ──────────────────────────────────────────────
+            v_row    = var_lut.get(rid, pd.Series())
+            avg_wt   = float(v_row.get("avg_Weight",    float("nan"))) if not v_row.empty else float("nan")
+            avg_freq = float(v_row.get("AVG_Frequency", float("nan"))) if not v_row.empty else float("nan")
+            var_cost = float(v_row.get("Freight_Cost",  float("nan"))) if not v_row.empty else float("nan")
+
+            rows_out.append({
+                "Scenario":                  scenario_label,
+                "Recipient_ID":              rid,
+                "Original_weekdays":         orig_wday_str,
+                "Assigned_pattern":          str(pattern_clear),
+                "Pattern_days":              pattern_days,
+                "Frequency":                 freq,
+                "avg_Weight":                avg_wt,
+                "AVG_Frequency":             avg_freq,
+                "Variability_Freight_Cost":  var_cost,
+                "Cost_before_EUR":           cost_before,
+                "Cost_after_EUR":            cost_after,
+                "Cost_change_EUR":           cost_change_eur,
+                "Cost_change_pct":           cost_change_pct,
+                "Truck_split":               truck_split,
+                "Max_trucks":                max_trucks,
+                **before_wt,
+                **after_wt,
+            })
+
+    if not rows_out:
+        print("[Recipient summary]  No profiled recipients found; skipping.")
+        return
+
+    df_out = pd.DataFrame(rows_out)
+    base_cols = [
+        "Scenario", "Recipient_ID", "Original_weekdays",
+        "Assigned_pattern", "Pattern_days", "Frequency",
+        "avg_Weight", "AVG_Frequency", "Variability_Freight_Cost",
+        "Cost_before_EUR", "Cost_after_EUR", "Cost_change_EUR", "Cost_change_pct",
+        "Truck_split", "Max_trucks",
+    ]
+    wday_cols = (
+        [f"{d}_weight_before" for d in _WDAY_SHORT] +
+        [f"{d}_weight_after"  for d in _WDAY_SHORT]
+    )
+    col_order = [c for c in (base_cols + wday_cols) if c in df_out.columns]
+    df_out = df_out[col_order]
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    df_out.to_csv(out_path, sep=";", encoding="latin-1", decimal=".", index=False)
+    print(f"[Recipient summary]  {len(df_out)} rows → {out_path}")
 
 
 def _ensure_dir(p: Path) -> None:
@@ -121,13 +315,16 @@ def _run_id_from_variability(v: Dict[str, Any], fmt: str) -> str:
     )
 
 
-def _suffix_from_variability(v: Dict[str, Any], clustered: bool) -> str:
+def _suffix_from_variability(v: Dict[str, Any], clustered: bool, method: str = "") -> str:
     base = (
         f"vw{_fmt_float(v.get('var_weight_max', 100))}"
         f"_vf{_fmt_float(v.get('var_frequency_max', 100))}"
         f"_mf{int(float(v.get('min_frequency', 1)))}"
     )
-    return ("clustered_" + base) if clustered else base
+    if not clustered:
+        return base
+    prefix = f"clustered_{method}_" if method else "clustered_"
+    return prefix + base
 
 
 def _read_matrix_csv(path: Path) -> pd.DataFrame:
@@ -432,17 +629,25 @@ def run_pipeline_from_config(
         )
 
     # ----------------------------
-    # 7) Clustered pattern assignment + apply profiles (optional, like old main.py)
+    # 7) Clustered pattern assignment + apply profiles (KMeans + DBSCAN)
     # ----------------------------
     clustering_yaml = cfg.get("clustering", {}) or {}
     do_clustered = bool(clustering_yaml.get("enabled", False))
 
+    # KMeans results (also aliased as _c for downstream compatibility)
     profiles_c = coords_clustered = None
     pattern_only_c = unchanged_c = shipments_after_c = None
     shipments_after_c_costed = None
     suffix_c = None
 
+    # DBSCAN results
+    profiles_dbscan = coords_dbscan = None
+    pattern_only_dbscan = unchanged_dbscan = shipments_after_dbscan = None
+    shipments_after_dbscan_costed = None
+    suffix_dbscan = None
+
     if do_clustered:
+        # ── KMeans ───────────────────────────────────────────────────────
         cl_cfg = ClusteredPatternAssignmentConfig(
             days=int(pat_yaml.get("days", 5)),
             time_limit_ms=time_limit_ms,
@@ -450,6 +655,7 @@ def run_pipeline_from_config(
             var_frequency_max=var_frequency_max,
             min_frequency=min_frequency,
             round_border=float(pat_yaml.get("round_border", 0.5)),
+            method="kmeans",
             num_clusters=int(clustering_yaml.get("num_clusters", 4)),
             random_state=int(clustering_yaml.get("random_state", 0)),
         )
@@ -458,37 +664,29 @@ def run_pipeline_from_config(
             df_var,
             coord_list,
             cl_cfg,
-            save_path=out_dir / "profile_assignment_clustered.csv",
+            save_path=out_dir / "profile_assignment_clustered_kmeans.csv",
         )
-        coords_clustered.to_csv(out_dir / "coords_clustered.csv", index=False)
+        coords_clustered.to_csv(out_dir / "coords_clustered_kmeans.csv", index=False)
 
-        _log_overweight_check(profiles_c, df_var, _app_cfg.max_truck_weight, label="clustered")
+        _log_overweight_check(profiles_c, df_var, _app_cfg.max_truck_weight, label="kmeans-clustered")
 
         pattern_only_c, unchanged_c, shipments_after_c = apply_profiles_to_shipments(
-            df_costed,
-            profiles_c,
-            _app_cfg,
+            df_costed, profiles_c, _app_cfg,
         )
 
-        suffix_c = _suffix_from_variability(v_yaml, clustered=True)
+        suffix_c = _suffix_from_variability(v_yaml, True, "kmeans")
 
         pattern_only_c.to_csv(
             out_dir / f"shipments_after_profiles_pattern_only_{suffix_c}.csv",
-            sep=";",
-            encoding="latin1",
-            index=False,
+            sep=";", encoding="latin1", index=False,
         )
         unchanged_c.to_csv(
             out_dir / f"shipments_after_profiles_unchanged_{suffix_c}.csv",
-            sep=";",
-            encoding="latin1",
-            index=False,
+            sep=";", encoding="latin1", index=False,
         )
         shipments_after_c.to_csv(
             out_dir / f"shipments_after_profiles_{suffix_c}.csv",
-            sep=";",
-            encoding="latin1",
-            index=False,
+            sep=";", encoding="latin1", index=False,
         )
 
         if recalc:
@@ -503,12 +701,83 @@ def run_pipeline_from_config(
             )
             shipments_after_c_costed.to_csv(
                 out_dir / f"shipments_after_profiles_costed_{suffix_c}.csv",
-                sep=";",
-                encoding="latin1",
-                decimal=".",
-                index=False,
+                sep=";", encoding="latin1", decimal=".", index=False,
             )
 
+        # ── DBSCAN ───────────────────────────────────────────────────────
+        cl_cfg_db = ClusteredPatternAssignmentConfig(
+            days=int(pat_yaml.get("days", 5)),
+            time_limit_ms=time_limit_ms,
+            var_weight_max=var_weight_max,
+            var_frequency_max=var_frequency_max,
+            min_frequency=min_frequency,
+            round_border=float(pat_yaml.get("round_border", 0.5)),
+            method="dbscan",
+            eps=float(clustering_yaml.get("eps", 0.05)),
+            min_samples=int(clustering_yaml.get("min_samples", 2)),
+        )
+
+        profiles_dbscan, coords_dbscan = assign_clustered_patterns(
+            df_var,
+            coord_list,
+            cl_cfg_db,
+            save_path=out_dir / "profile_assignment_clustered_dbscan.csv",
+        )
+        coords_dbscan.to_csv(out_dir / "coords_clustered_dbscan.csv", index=False)
+        suffix_dbscan = _suffix_from_variability(v_yaml, True, "dbscan")
+
+        if not profiles_dbscan.empty:
+            _log_overweight_check(profiles_dbscan, df_var, _app_cfg.max_truck_weight, label="dbscan-clustered")
+
+            pattern_only_dbscan, unchanged_dbscan, shipments_after_dbscan = apply_profiles_to_shipments(
+                df_costed, profiles_dbscan, _app_cfg,
+            )
+
+            pattern_only_dbscan.to_csv(
+                out_dir / f"shipments_after_profiles_pattern_only_{suffix_dbscan}.csv",
+                sep=";", encoding="latin1", index=False,
+            )
+            unchanged_dbscan.to_csv(
+                out_dir / f"shipments_after_profiles_unchanged_{suffix_dbscan}.csv",
+                sep=";", encoding="latin1", index=False,
+            )
+            shipments_after_dbscan.to_csv(
+                out_dir / f"shipments_after_profiles_{suffix_dbscan}.csv",
+                sep=";", encoding="latin1", index=False,
+            )
+
+            if recalc:
+                shipments_after_dbscan_costed = add_freight_costs(
+                    shipments_after_dbscan,
+                    df_tariff_wide=tariff_matrix,
+                    config=cost_cfg,
+                    out_col="Freight_Cost",
+                    weight_col_shipments="Weight",
+                    distance_col_shipments="Euc_Distance",
+                    weight_col_tariff="Weight_kg",
+                )
+                shipments_after_dbscan_costed.to_csv(
+                    out_dir / f"shipments_after_profiles_costed_{suffix_dbscan}.csv",
+                    sep=";", encoding="latin1", decimal=".", index=False,
+                )
+        else:
+            print("[DBSCAN] All recipients are noise points; no DBSCAN profiles generated.")
+
+
+    # ----------------------------
+    # 7b) Per-recipient before/after summary
+    # ----------------------------
+    _write_recipient_summary_csv(
+        df_original=df_costed,
+        pattern_only_nc=pattern_only_nc,
+        pattern_only_c=pattern_only_c,
+        pattern_only_dbscan=pattern_only_dbscan,
+        profiles_nc=profiles_nc,
+        profiles_c=profiles_c,
+        profiles_dbscan=profiles_dbscan,
+        df_var=df_var,
+        out_path=out_dir / "recipient_summary.csv",
+    )
 
     # ----------------------------
     # 8) Routing (optional)
@@ -536,21 +805,38 @@ def run_pipeline_from_config(
     # 9) Maps
     # ----------------------------
     maps_yaml = cfg.get("maps", {}) or {}
-    if bool(maps_yaml.get("enabled", True)) and coords_clustered is not None and profiles_c is not None:
+    if bool(maps_yaml.get("enabled", True)) and do_clustered:
         map_cfg = MapConfig(
             enabled=True,
-            provider=str(maps_yaml.get("provider", "osm")),  # "osm" | "google_roadmap" | "google_satellite"
+            provider=str(maps_yaml.get("provider", "osm")),
             zoom_start=int(maps_yaml.get("zoom_start", 7)),
             anonymize=bool(maps_yaml.get("anonymize", True)),
         )
+        _routes_json = out_dir / "routes.json"
+        _routes_path = _routes_json if _routes_json.exists() else None
+        _sender = (float(sender_lat), float(sender_lon))
 
-        out_html = create_cluster_map_html(
-            coords_clustered=coords_clustered,
-            profiles_clustered=profiles_c,
-            out_html=out_dir / "maps" / f"cluster_map_{suffix_c}.html",
-            sender_coord=(float(sender_lat), float(sender_lon)),
-            cfg=map_cfg,
-        )
+        # KMeans map
+        if coords_clustered is not None and profiles_c is not None:
+            create_cluster_map_html(
+                coords_clustered=coords_clustered,
+                profiles_clustered=profiles_c,
+                out_html=out_dir / "maps" / f"cluster_map_{suffix_c}.html",
+                sender_coord=_sender,
+                cfg=map_cfg,
+                routes_json_path=_routes_path,
+            )
+
+        # DBSCAN map (coords contain outlier markers with Cluster=-1 → shown in gray)
+        if coords_dbscan is not None and profiles_dbscan is not None and not profiles_dbscan.empty:
+            create_cluster_map_html(
+                coords_clustered=coords_dbscan,
+                profiles_clustered=profiles_dbscan,
+                out_html=out_dir / "maps" / f"cluster_map_{suffix_dbscan}.html",
+                sender_coord=_sender,
+                cfg=map_cfg,
+                routes_json_path=_routes_path,
+            )
 
     # ----------------------------
     # 10) Weekday plots
@@ -576,24 +862,42 @@ def run_pipeline_from_config(
                 df_full=df_costed,
                 out_pdf=plots_dir / f"weekday_plots_{suffix_c}.pdf",
                 run_name=out_dir.name,
-                clustered="Clustered",
+                clustered="KMeans Clustered",
             )
 
-        # Freight cost comparison chart (three-way when clustered, two-way otherwise)
-        df_profiled_for_plot = shipments_after_nc_costed if shipments_after_nc_costed is not None else shipments_after_nc
-        df_clustered_for_plot = None
-        if do_clustered and shipments_after_c is not None:
-            df_clustered_for_plot = shipments_after_c_costed if shipments_after_c_costed is not None else shipments_after_c
+        if do_clustered and profiles_dbscan is not None and not profiles_dbscan.empty:
+            write_weekday_plots_pdf(
+                df_demand=profiles_dbscan,
+                df_profile=pattern_only_dbscan,
+                df_notprofile=unchanged_dbscan,
+                df_result=shipments_after_dbscan,
+                df_full=df_costed,
+                out_pdf=plots_dir / f"weekday_plots_{suffix_dbscan}.pdf",
+                run_name=out_dir.name,
+                clustered="DBSCAN Clustered",
+            )
 
-        # Union of all profiled IDs for the subset page (page 2 of the PDF)
+        # Comparison charts — up to 4 bars per weekday
+        df_profiled_for_plot = shipments_after_nc_costed if shipments_after_nc_costed is not None else shipments_after_nc
+        df_kmeans_for_plot   = None
+        df_dbscan_for_plot   = None
+        if do_clustered and shipments_after_c is not None:
+            df_kmeans_for_plot = shipments_after_c_costed if shipments_after_c_costed is not None else shipments_after_c
+        if do_clustered and shipments_after_dbscan is not None:
+            df_dbscan_for_plot = shipments_after_dbscan_costed if shipments_after_dbscan_costed is not None else shipments_after_dbscan
+
+        # Union of all profiled IDs for the subset page (page 2)
         _profiled_ids: set[int] = set(profiles_nc["Recipient_ID"].astype(int).tolist())
         if do_clustered and profiles_c is not None:
             _profiled_ids |= set(profiles_c["Recipient_ID"].astype(int).tolist())
+        if do_clustered and profiles_dbscan is not None and not profiles_dbscan.empty:
+            _profiled_ids |= set(profiles_dbscan["Recipient_ID"].astype(int).tolist())
 
         write_freight_cost_comparison_pdf(
             df_original=df_costed,
             df_profiled=df_profiled_for_plot,
-            df_clustered=df_clustered_for_plot,
+            df_clustered=df_kmeans_for_plot,
+            df_clustered_dbscan=df_dbscan_for_plot,
             out_pdf=plots_dir / "freight_cost_comparison.pdf",
             profiled_ids=_profiled_ids,
         )
@@ -601,15 +905,17 @@ def run_pipeline_from_config(
         write_weight_distribution_pdf(
             df_original=df_costed,
             df_profiled=df_profiled_for_plot,
-            df_clustered=df_clustered_for_plot,
+            df_clustered=df_kmeans_for_plot,
+            df_clustered_dbscan=df_dbscan_for_plot,
             out_pdf=plots_dir / "weight_distribution_comparison.pdf",
             profiled_ids=_profiled_ids,
         )
 
+        # Summary uses KMeans as the primary "clustered" reference
         write_pipeline_summary(
             df_original=df_costed,
             df_profiled=df_profiled_for_plot,
-            df_clustered=df_clustered_for_plot,
+            df_clustered=df_kmeans_for_plot,
             df_var=df_var,
             profiled_ids=_profiled_ids,
             pattern_only_nc=pattern_only_nc,
@@ -624,12 +930,14 @@ def run_pipeline_from_config(
     # ----------------------------
     # Tableau export
     # ----------------------------
-    _tableau_profiled  = shipments_after_nc_costed if shipments_after_nc_costed is not None else shipments_after_nc
-    _tableau_clustered = shipments_after_c_costed  if (do_clustered and shipments_after_c_costed is not None) else (shipments_after_c if do_clustered else None)
+    _tableau_profiled = shipments_after_nc_costed if shipments_after_nc_costed is not None else shipments_after_nc
+    _tableau_kmeans   = (shipments_after_c_costed      if shipments_after_c_costed      is not None else shipments_after_c)      if do_clustered else None
+    _tableau_dbscan   = (shipments_after_dbscan_costed if shipments_after_dbscan_costed is not None else shipments_after_dbscan) if (do_clustered and shipments_after_dbscan is not None) else None
     _write_tableau_export(
         df_original=df_costed,
         df_profiled=_tableau_profiled,
-        df_clustered=_tableau_clustered,
+        df_clustered=_tableau_kmeans,
+        df_clustered_dbscan=_tableau_dbscan,
         out_path=out_dir / "tableau_export.csv",
     )
 
@@ -640,6 +948,7 @@ def run_pipeline_from_config(
         "out_dir": str(out_dir),
         "run_id": out_dir.name,
         "tableau_export": str(out_dir / "tableau_export.csv"),
+        "recipient_summary": str(out_dir / "recipient_summary.csv"),
 
         "shipments_preprocessed": df_pre,
         "shipments_with_coords": df_coords,
@@ -658,7 +967,7 @@ def run_pipeline_from_config(
         "shipments_after_profiles_unchanged_nonclustered": unchanged_nc,
         "shipments_after_profiles_costed_nonclustered": shipments_after_nc_costed,
 
-        # CLUSTERED (optional)
+        # KMEANS CLUSTERED (optional)
         "profiles_clustered": profiles_c,
         "coords_clustered": coords_clustered,
         "run_suffix_clustered": suffix_c,
@@ -666,6 +975,15 @@ def run_pipeline_from_config(
         "shipments_after_profiles_pattern_only_clustered": pattern_only_c,
         "shipments_after_profiles_unchanged_clustered": unchanged_c,
         "shipments_after_profiles_costed_clustered": shipments_after_c_costed,
+
+        # DBSCAN CLUSTERED (optional)
+        "profiles_clustered_dbscan": profiles_dbscan,
+        "coords_clustered_dbscan": coords_dbscan,
+        "run_suffix_clustered_dbscan": suffix_dbscan,
+        "shipments_after_profiles_clustered_dbscan": shipments_after_dbscan,
+        "shipments_after_profiles_pattern_only_clustered_dbscan": pattern_only_dbscan,
+        "shipments_after_profiles_unchanged_clustered_dbscan": unchanged_dbscan,
+        "shipments_after_profiles_costed_clustered_dbscan": shipments_after_dbscan_costed,
 
         # Matrices (optional depending on compute/load inputs)
         "distances_RR": distances_RR,

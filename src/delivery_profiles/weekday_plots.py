@@ -152,61 +152,55 @@ WEEKDAY_FULL_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 def plot_freight_cost_comparison(
     df_original: pd.DataFrame,
     df_profiled: pd.DataFrame,
-    df_clustered: pd.DataFrame | None = None,
+    df_clustered: "pd.DataFrame | None" = None,
     *,
+    df_clustered_dbscan: "pd.DataFrame | None" = None,
     freight_cost_col: str = "Freight_Cost",
     title: str = "Freight Cost Distribution by Weekday",
 ) -> plt.Figure:
     """
-    Bar chart showing freight cost % per weekday for up to three scenarios:
-      Without Profiles / With Profiles / Clustered Profiles (optional).
+    Bar chart: freight cost % per weekday for 2-4 scenarios.
+    When df_clustered_dbscan is supplied, df_clustered is labelled
+    'KMeans Clustered' instead of 'Clustered Profiles'.
     """
-    def _pct_by_weekday(df: pd.DataFrame) -> pd.Series:
+    def _pct(df: pd.DataFrame) -> pd.Series:
         df = ensure_weekday(df.copy())
         df[freight_cost_col] = pd.to_numeric(df[freight_cost_col], errors="coerce")
-        totals = (
-            df.groupby("Weekday")[freight_cost_col]
-            .sum()
-            .reindex(WEEKDAY_ORDER)
-            .fillna(0.0)
-        )
-        grand = totals.sum() or 1.0
-        return (totals / grand) * 100.0
+        totals = df.groupby("Weekday")[freight_cost_col].sum().reindex(WEEKDAY_ORDER).fillna(0.0)
+        return (totals / (totals.sum() or 1.0)) * 100.0
 
-    pct_orig = _pct_by_weekday(df_original)
-    pct_prof = _pct_by_weekday(df_profiled)
-    pct_clus = _pct_by_weekday(df_clustered) if df_clustered is not None else None
+    pct_orig   = _pct(df_original)
+    pct_prof   = _pct(df_profiled)
+    pct_clus   = _pct(df_clustered)        if df_clustered      is not None else None
+    pct_dbscan = _pct(df_clustered_dbscan) if df_clustered_dbscan is not None else None
 
-    has_clustered = pct_clus is not None
-    n_series = 3 if has_clustered else 2
-    bar_w = 0.25 if has_clustered else 0.35
-    x = np.arange(len(WEEKDAY_ORDER))
-    offsets = np.linspace(-(n_series - 1) / 2.0 * bar_w, (n_series - 1) / 2.0 * bar_w, n_series)
+    col_dbscan = "#DD8452"   # orange — DBSCAN Clustered
+    col_clus   = "#4C72B0"   # blue   — KMeans / Clustered Profiles
+    col_prof   = "#55A868"   # green  — Profiles Only
+    col_orig   = "#C44E52"   # red    — Without Profiles
 
-    # Colours match legacy intent without seaborn
-    col_clus = "#4C72B0"   # blue  — Clustered Profiles
-    col_prof = "#55A868"   # green — Profiles Only
-    col_orig = "#C44E52"   # red   — Without Profiles
+    # ordered left→right: DBSCAN → KMeans → Profiles Only → Without Profiles
+    all_data = []
+    if pct_dbscan is not None:
+        all_data.append((pct_dbscan, "DBSCAN Clustered",   col_dbscan))
+    if pct_clus is not None:
+        lbl = "KMeans Clustered" if pct_dbscan is not None else "Clustered Profiles"
+        all_data.append((pct_clus, lbl, col_clus))
+    all_data.append((pct_prof, "Profiles Only",    col_prof))
+    all_data.append((pct_orig, "Without Profiles", col_orig))
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    n     = len(all_data)
+    bar_w = {2: 0.35, 3: 0.25, 4: 0.18}.get(n, 0.18)
+    x     = np.arange(len(WEEKDAY_ORDER))
+    offs  = np.linspace(-(n - 1) / 2.0 * bar_w, (n - 1) / 2.0 * bar_w, n)
 
-    series = []
-    if has_clustered:
-        series = [
-            (pct_clus.values, offsets[0], "Clustered Profiles", col_clus),
-            (pct_prof.values, offsets[1], "Profiles Only",      col_prof),
-            (pct_orig.values, offsets[2], "Without Profiles",   col_orig),
-        ]
-    else:
-        series = [
-            (pct_prof.values, offsets[0], "Profiles Only",    col_prof),
-            (pct_orig.values, offsets[1], "Without Profiles", col_orig),
-        ]
+    fig, ax = plt.subplots(figsize=(12 if n == 4 else 10, 6))
+    lbl_fs  = 7 if n == 4 else 8
 
-    for vals, offset, label, color in series:
-        ax.bar(x + offset, vals, bar_w, label=label, color=color)
-        for xi, v in zip(x, vals):
-            ax.text(xi + offset, v + 0.3, f"{v:.2f}%", ha="center", va="bottom", fontsize=8)
+    for (pct_s, lbl, color), offset in zip(all_data, offs):
+        ax.bar(x + offset, pct_s.values, bar_w, label=lbl, color=color)
+        for xi, v in zip(x, pct_s.values):
+            ax.text(xi + offset, v + 0.3, f"{v:.1f}%", ha="center", va="bottom", fontsize=lbl_fs)
 
     ax.set_xticks(x)
     ax.set_xticklabels(WEEKDAY_FULL_NAMES)
@@ -222,8 +216,9 @@ def write_freight_cost_comparison_pdf(
     *,
     df_original: pd.DataFrame,
     df_profiled: pd.DataFrame,
-    df_clustered: pd.DataFrame | None = None,
-    out_pdf: str | Path,
+    df_clustered: "pd.DataFrame | None" = None,
+    df_clustered_dbscan: "pd.DataFrame | None" = None,
+    out_pdf: "str | Path",
     freight_cost_col: str = "Freight_Cost",
     profiled_ids: "set[int] | None" = None,
 ) -> None:
@@ -240,6 +235,7 @@ def write_freight_cost_comparison_pdf(
         df_original,
         df_profiled,
         df_clustered=df_clustered,
+        df_clustered_dbscan=df_clustered_dbscan,
         freight_cost_col=freight_cost_col,
         title="Freight Cost Distribution by Weekday — Full Fleet",
     )
@@ -259,6 +255,7 @@ def write_freight_cost_comparison_pdf(
                 _filter(df_original),
                 _filter(df_profiled),
                 df_clustered=_filter(df_clustered) if df_clustered is not None else None,
+                df_clustered_dbscan=_filter(df_clustered_dbscan) if df_clustered_dbscan is not None else None,
                 freight_cost_col=freight_cost_col,
                 title=f"Freight Cost Distribution by Weekday — Profiled Recipients Only (n={len(profiled_ids)})",
             )
@@ -269,59 +266,54 @@ def write_freight_cost_comparison_pdf(
 def plot_weight_distribution_comparison(
     df_original: pd.DataFrame,
     df_profiled: pd.DataFrame,
-    df_clustered: pd.DataFrame | None = None,
+    df_clustered: "pd.DataFrame | None" = None,
     *,
+    df_clustered_dbscan: "pd.DataFrame | None" = None,
     weight_col: str = "Weight",
     title: str = "Weight Distribution by Weekday",
 ) -> plt.Figure:
     """
-    Bar chart showing total weight % per weekday for up to three scenarios:
-      Without Profiles / Profiles Only / Clustered Profiles (optional).
+    Bar chart: weight % per weekday for 2-4 scenarios.
+    When df_clustered_dbscan is supplied, df_clustered is labelled
+    'KMeans Clustered' instead of 'Clustered Profiles'.
     """
-    def _pct_by_weekday(df: pd.DataFrame) -> pd.Series:
+    def _pct(df: pd.DataFrame) -> pd.Series:
         df = ensure_weekday(df.copy())
         df[weight_col] = pd.to_numeric(df[weight_col], errors="coerce")
-        totals = (
-            df.groupby("Weekday")[weight_col]
-            .sum()
-            .reindex(WEEKDAY_ORDER)
-            .fillna(0.0)
-        )
-        grand = totals.sum() or 1.0
-        return (totals / grand) * 100.0
+        totals = df.groupby("Weekday")[weight_col].sum().reindex(WEEKDAY_ORDER).fillna(0.0)
+        return (totals / (totals.sum() or 1.0)) * 100.0
 
-    pct_orig = _pct_by_weekday(df_original)
-    pct_prof = _pct_by_weekday(df_profiled)
-    pct_clus = _pct_by_weekday(df_clustered) if df_clustered is not None else None
+    pct_orig   = _pct(df_original)
+    pct_prof   = _pct(df_profiled)
+    pct_clus   = _pct(df_clustered)        if df_clustered      is not None else None
+    pct_dbscan = _pct(df_clustered_dbscan) if df_clustered_dbscan is not None else None
 
-    has_clustered = pct_clus is not None
-    n_series = 3 if has_clustered else 2
-    bar_w = 0.25 if has_clustered else 0.35
-    x = np.arange(len(WEEKDAY_ORDER))
-    offsets = np.linspace(-(n_series - 1) / 2.0 * bar_w, (n_series - 1) / 2.0 * bar_w, n_series)
+    col_dbscan = "#DD8452"
+    col_clus   = "#4C72B0"
+    col_prof   = "#55A868"
+    col_orig   = "#C44E52"
 
-    col_clus = "#4C72B0"   # blue  — Clustered Profiles
-    col_prof = "#55A868"   # green — Profiles Only
-    col_orig = "#C44E52"   # red   — Without Profiles
+    all_data = []
+    if pct_dbscan is not None:
+        all_data.append((pct_dbscan, "DBSCAN Clustered",   col_dbscan))
+    if pct_clus is not None:
+        lbl = "KMeans Clustered" if pct_dbscan is not None else "Clustered Profiles"
+        all_data.append((pct_clus, lbl, col_clus))
+    all_data.append((pct_prof, "Profiles Only",    col_prof))
+    all_data.append((pct_orig, "Without Profiles", col_orig))
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    n     = len(all_data)
+    bar_w = {2: 0.35, 3: 0.25, 4: 0.18}.get(n, 0.18)
+    x     = np.arange(len(WEEKDAY_ORDER))
+    offs  = np.linspace(-(n - 1) / 2.0 * bar_w, (n - 1) / 2.0 * bar_w, n)
 
-    if has_clustered:
-        series = [
-            (pct_clus.values, offsets[0], "Clustered Profiles", col_clus),
-            (pct_prof.values, offsets[1], "Profiles Only",      col_prof),
-            (pct_orig.values, offsets[2], "Without Profiles",   col_orig),
-        ]
-    else:
-        series = [
-            (pct_prof.values, offsets[0], "Profiles Only",    col_prof),
-            (pct_orig.values, offsets[1], "Without Profiles", col_orig),
-        ]
+    fig, ax = plt.subplots(figsize=(12 if n == 4 else 10, 6))
+    lbl_fs  = 7 if n == 4 else 8
 
-    for vals, offset, label, color in series:
-        ax.bar(x + offset, vals, bar_w, label=label, color=color)
-        for xi, v in zip(x, vals):
-            ax.text(xi + offset, v + 0.3, f"{v:.2f}%", ha="center", va="bottom", fontsize=8)
+    for (pct_s, lbl, color), offset in zip(all_data, offs):
+        ax.bar(x + offset, pct_s.values, bar_w, label=lbl, color=color)
+        for xi, v in zip(x, pct_s.values):
+            ax.text(xi + offset, v + 0.3, f"{v:.1f}%", ha="center", va="bottom", fontsize=lbl_fs)
 
     ax.set_xticks(x)
     ax.set_xticklabels(WEEKDAY_FULL_NAMES)
@@ -337,8 +329,9 @@ def write_weight_distribution_pdf(
     *,
     df_original: pd.DataFrame,
     df_profiled: pd.DataFrame,
-    df_clustered: pd.DataFrame | None = None,
-    out_pdf: str | Path,
+    df_clustered: "pd.DataFrame | None" = None,
+    df_clustered_dbscan: "pd.DataFrame | None" = None,
+    out_pdf: "str | Path",
     weight_col: str = "Weight",
     profiled_ids: "set[int] | None" = None,
 ) -> None:
@@ -354,6 +347,7 @@ def write_weight_distribution_pdf(
         df_original,
         df_profiled,
         df_clustered=df_clustered,
+        df_clustered_dbscan=df_clustered_dbscan,
         weight_col=weight_col,
         title="Weight Distribution by Weekday — Full Fleet",
     )
@@ -373,6 +367,7 @@ def write_weight_distribution_pdf(
                 _filter(df_original),
                 _filter(df_profiled),
                 df_clustered=_filter(df_clustered) if df_clustered is not None else None,
+                df_clustered_dbscan=_filter(df_clustered_dbscan) if df_clustered_dbscan is not None else None,
                 weight_col=weight_col,
                 title=f"Weight Distribution by Weekday — Profiled Recipients Only (n={len(profiled_ids)})",
             )

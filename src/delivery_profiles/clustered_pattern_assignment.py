@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 import pandas as pd
 from ortools.linear_solver import pywraplp
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, DBSCAN
 from math import radians
 
 
@@ -61,10 +61,17 @@ class ClusteredPatternAssignmentConfig:
     # rounding
     round_border: float = 0.5
 
-    # clustering
+    # clustering — shared
+    method: str = "kmeans"   # "kmeans" | "dbscan"
+
+    # KMeans parameters
     num_clusters: int = 4
     random_state: int = 0
     n_init: int = 10
+
+    # DBSCAN parameters
+    eps: float = 0.05        # neighbourhood radius in radians
+    min_samples: int = 2     # minimum points to form a core point
 
     enforce_min_demand_1: bool = False
 
@@ -164,17 +171,42 @@ def add_clusters(
     sel["Longitude_Radians"] = sel["longitude"].apply(radians)
     X = sel[["Latitude_Radians", "Longitude_Radians"]].to_numpy()
 
-    kmeans = KMeans(
-        n_clusters=cfg.num_clusters,
-        random_state=cfg.random_state,
-        n_init=cfg.n_init,
-    )
-    sel["Cluster"] = kmeans.fit_predict(X).astype(int)
+    if cfg.method == "dbscan":
+        db = DBSCAN(eps=cfg.eps, min_samples=cfg.min_samples, metric="euclidean")
+        labels = db.fit_predict(X).astype(int)
+        sel["Cluster"] = labels
 
-    mapping = dict(zip(sel["Empfänger_id"], sel["Cluster"]))
-    out = df_params.copy()
-    out["Cluster"] = out["Recipient_ID"].map(mapping).astype(int)
+        n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+        n_outliers  = int((labels == -1).sum())
+        print(
+            f"\n[DBSCAN]  {n_clusters} cluster(s) found,"
+            f" {n_outliers}/{len(sel)} recipient(s) are noise/outliers"
+            f" (will fall through to non-clustered patterns)\n"
+        )
 
+        # Non-outlier recipients only go to the MIP solver.
+        # Outliers (Cluster == -1) are excluded; their shipments stay in "unchanged".
+        sel_in  = sel[sel["Cluster"] >= 0]
+        mapping = dict(zip(sel_in["Empfänger_id"], sel_in["Cluster"]))
+        out     = df_params[df_params["Recipient_ID"].isin(sel_in["Empfänger_id"])].copy()
+        if not out.empty:
+            out["Cluster"] = out["Recipient_ID"].map(mapping).astype(int)
+        else:
+            out = out.copy()
+            out["Cluster"] = pd.Series(dtype=int)
+    else:
+        # KMeans (default)
+        kmeans = KMeans(
+            n_clusters=cfg.num_clusters,
+            random_state=cfg.random_state,
+            n_init=cfg.n_init,
+        )
+        sel["Cluster"] = kmeans.fit_predict(X).astype(int)
+        mapping = dict(zip(sel["Empfänger_id"], sel["Cluster"]))
+        out = df_params.copy()
+        out["Cluster"] = out["Recipient_ID"].map(mapping).astype(int)
+
+    # coords df always contains ALL recipients (including outliers for visualization)
     return out, sel
 
 
@@ -305,6 +337,16 @@ def assign_clustered_patterns(
     filtered = filter_recipients(df_variability, cfg)
     params = build_parameters(filtered, cfg)
     params_clustered, coords_clustered = add_clusters(params, coordinate_list, cfg)
+
+    if params_clustered.empty:
+        # All recipients were DBSCAN outliers — return an empty profiles df
+        empty = pd.DataFrame(columns=["Recipient_ID", "Frequency", "Demand", "Cluster", "Pattern", "Pattern_clear"])
+        if save_path:
+            p = Path(save_path)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            empty.to_csv(p, encoding="latin-1", sep=";", index=False)
+        return empty, coords_clustered
+
     results = solve_clustered_pattern_assignment(params_clustered, cfg)
 
     if save_path:

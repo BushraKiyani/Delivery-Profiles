@@ -118,11 +118,17 @@ The effect is that the solver smooths total daily shipped quantity as evenly as 
 
 ---
 
-### KMeans Clustering (Clustered Assignment)
+### Geographic Clustering (KMeans + DBSCAN)
 
-When `clustering.enabled: true`, recipients are grouped into geographic clusters before pattern assignment runs. Coordinates are converted to **radians** before passing to `sklearn.KMeans`, which makes the Euclidean distance in radian-space a closer proxy for great-circle distance than raw degree differences.
+When `clustering.enabled: true`, the pipeline runs **both** clustering methods and produces separate outputs for each:
 
-The MIP is then extended with an additional constraint: all recipients in the same `(cluster, frequency)` group must share the same pattern. This is enforced via auxiliary binary variables `y[group, m]` with `x[j,m] == y[group,m]` for every member `j` of the group. The result is that geographically adjacent recipients with the same delivery frequency receive on the same days — reducing the number of distinct routes the depot needs to operate.
+**KMeans** groups all qualifying recipients into exactly `num_clusters` geographic clusters. Coordinates are converted to **radians** before fitting, making Euclidean distance in radian-space a closer proxy for great-circle distance.
+
+**DBSCAN** finds clusters of arbitrary shape based on a density threshold (`eps` radius, `min_samples` minimum points). Recipients in regions too sparse to form a dense cluster receive `label == -1` (noise/outliers) and are excluded from the cluster-constrained MIP — they fall back to independent non-clustered patterns. The DBSCAN map renders outlier recipients as gray markers.
+
+For both methods, the MIP is extended with an additional constraint: all recipients in the same `(cluster, frequency)` group must share the same delivery pattern. This is enforced via auxiliary binary variables `y[group, m]` with `x[j,m] == y[group,m]` for every member `j`. The result is that geographically adjacent recipients with the same frequency receive on the same days, reducing the number of distinct routes the depot operates.
+
+Comparison charts (freight cost, weight distribution) show **4 bars** per weekday when both clustering methods produce results: DBSCAN Clustered / KMeans Clustered / Profiles Only / Without Profiles.
 
 ---
 
@@ -270,9 +276,14 @@ Freight Cost = base_price + (Weight in kg / 1000) × price_per_ton
 - `round_border` — rounding threshold for demand fractions
 
 ### `clustering`
-- `enabled: true | false`
-- `num_clusters` — number of KMeans clusters
-- `random_state`
+- `enabled: true | false` — when `true`, **both** KMeans and DBSCAN run automatically
+- `method: kmeans | dbscan` — documents the primary method (informational; both always run)
+- `num_clusters` — number of KMeans clusters (KMeans only)
+- `random_state` — KMeans random seed (KMeans only)
+- `eps` — DBSCAN neighbourhood radius in radians; `0.05` ≈ 5 km at 53° N (DBSCAN only)
+- `min_samples` — minimum points to form a dense cluster (DBSCAN only)
+
+Recipients labeled as noise/outliers by DBSCAN (`label == -1`) are excluded from the clustered MIP and fall back to non-clustered individual patterns. The DBSCAN map shows outlier recipients as gray markers.
 
 ### `post_cost_recalc`
 - `enabled: true` (default) — recomputes freight costs for consolidated shipments after profile application; set to `false` to skip
