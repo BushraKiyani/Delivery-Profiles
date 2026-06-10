@@ -12,16 +12,17 @@ Built across 9 modular stages: ingestion → geocoding → distance matrix → c
 - Interactive cluster maps (Folium HTML)
 - Weekday demand visualizations (PDF)
 
-The pipeline supports:
-- Geocoding with caching
-- Distance matrix computation (OSRM) or loading
-- Freight cost modeling
-- Variability filtering
-- Pattern optimization (OR-Tools)
-- Optional geographic clustering
-- Profile application to shipment schedules
-- Map and plot visualization
-
+```mermaid
+graph LR
+  A[Raw Shipments CSV] --> B[Preprocessing]
+  B --> C[Geocoding]
+  C --> D[Distance Matrix]
+  D --> E[Cost Modelling]
+  E --> F[Variability Filter]
+  F --> G[OR-Tools Optimization]
+  G --> H[Profile Application]
+  H --> I[Maps & Visualization]
+```
 ## High-Level Workflow
 The pipeline runs the following stages:
 
