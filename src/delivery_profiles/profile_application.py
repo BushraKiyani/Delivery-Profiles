@@ -130,6 +130,9 @@ def apply_profiles_to_shipments(
                 total_cost = float(buffer_df[cfg.freight_cost_col].sum())
 
                 if total_w <= cfg.max_truck_weight:
+                    avg_delay = float(
+                        (ship_day - buffer_df[cfg.loading_date_col]).dt.days.mean()
+                    )
                     out_rows.append(
                         {
                             cfg.recipient_col: rid,
@@ -139,6 +142,7 @@ def apply_profiles_to_shipments(
                             cfg.weight_col: total_w,
                             cfg.distance_col: float(buffer_df[cfg.distance_col].iloc[0]),
                             cfg.freight_cost_col: total_cost,
+                            "Delay": avg_delay,
                             "Frequency": freq,
                             "Pattern": pat_idx,
                             "Pattern_clear": pattern,
