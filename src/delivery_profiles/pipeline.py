@@ -15,6 +15,7 @@ from .cost_model import CostModelConfig, add_freight_costs
 from .profile_application import apply_profiles_to_shipments, ProfileApplicationConfig
 from .routing_vrp import route
 from .maps import create_cluster_map_html, MapConfig
+from .weekday_plots import write_weekday_plots_pdf
 
 
 # -----------------------------------------------------------------------------
@@ -448,6 +449,33 @@ def run_pipeline_from_config(
             sender_coord=(float(sender_lat), float(sender_lon)),
             cfg=map_cfg,
         )
+
+    # ----------------------------
+    # 10) Weekday plots
+    # ----------------------------
+    plots_yaml = cfg.get("plots", {}) or {}
+    if bool(plots_yaml.get("enabled", True)):
+        write_weekday_plots_pdf(
+            df_demand=profiles_nc,
+            df_profile=pattern_only_nc,
+            df_notprofile=unchanged_nc,
+            df_result=shipments_after_nc,
+            df_full=df_costed,
+            out_pdf=plots_dir / f"weekday_plots_{suffix_nc}.pdf",
+            run_name=out_dir.name,
+            clustered="Non-Clustered",
+        )
+        if do_clustered and profiles_c is not None:
+            write_weekday_plots_pdf(
+                df_demand=profiles_c,
+                df_profile=pattern_only_c,
+                df_notprofile=unchanged_c,
+                df_result=shipments_after_c,
+                df_full=df_costed,
+                out_pdf=plots_dir / f"weekday_plots_{suffix_c}.pdf",
+                run_name=out_dir.name,
+                clustered="Clustered",
+            )
 
     # ----------------------------
     # Return (useful for notebooks/tests)
