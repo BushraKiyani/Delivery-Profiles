@@ -16,6 +16,10 @@ run_naming:
   enabled: true
   format: "minF{min_frequency}_varW{var_weight_max}_varF{var_frequency_max}"
 
+sender:
+  lon: 9.3372
+  lat: 53.124339
+
 preprocessing:
   write_preprocessed_csv: false   # set true to save cleaned shipments before geocoding
 

@@ -163,6 +163,12 @@ Defines raw data, output, and cache locations.
 Automatically creates run-specific output folders.
 Example: `outputs/runs/minF2_varW0.75_varF0.75/`
 
+### `sender`
+- `lon` — sender/depot longitude (default: `9.3372`)
+- `lat` — sender/depot latitude (default: `53.124339`)
+
+Can be overridden per run with `--sender-lon` / `--sender-lat` on the CLI.
+
 ### `preprocessing`
 - `write_preprocessed_csv: false` — set to `true` to save the cleaned shipments CSV before geocoding
 
@@ -225,6 +231,15 @@ From project root:
 python scripts/run_pipeline.py \
   --config config/default.yaml \
   --shipments data/raw/shipments.csv \
+  --tariff data/raw/tariff_matrix.csv
+```
+
+Override the sender location from the command line if needed:
+
+```bash
+python scripts/run_pipeline.py \
+  --config config/default.yaml \
+  --shipments data/raw/shipments.csv \
   --tariff data/raw/tariff_matrix.csv \
   --sender-lon 7.4653 \
   --sender-lat 51.5136
@@ -233,12 +248,17 @@ python scripts/run_pipeline.py \
 ### Required Arguments
 
 - `--shipments`
-- `--sender-lon`
-- `--sender-lat`
 
 Required if `tariff_type = matrix`:
 
 - `--tariff`
+
+### Optional Arguments
+
+- `--sender-lon` — overrides `sender.lon` in config
+- `--sender-lat` — overrides `sender.lat` in config
+
+Sender coordinates must be set in at least one place (config or CLI). The pipeline raises an error at startup if neither is provided.
 
 ---
 

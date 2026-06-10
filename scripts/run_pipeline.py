@@ -13,8 +13,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--config", default="config/default.yaml", help="Path to YAML config")
     p.add_argument("--shipments", required=True, help="Path to shipments CSV")
     p.add_argument("--tariff", required=False, help="Path to tariff matrix CSV (required if tariff_type=matrix)")
-    p.add_argument("--sender-lon", required=True, type=float, help="Sender longitude")
-    p.add_argument("--sender-lat", required=True, type=float, help="Sender latitude")
+    p.add_argument("--sender-lon", required=False, type=float, default=None,
+                   help="Sender longitude (overrides config sender.lon)")
+    p.add_argument("--sender-lat", required=False, type=float, default=None,
+                   help="Sender latitude (overrides config sender.lat)")
     return p.parse_args()
 
 
@@ -34,11 +36,21 @@ def main() -> None:
             raise FileNotFoundError(f"Tariff file not found: {tariff_path}")
         tariff_matrix = pd.read_csv(tariff_path, sep=";", encoding="latin1")
 
+    # CLI overrides config; config is the default
+    sender_yaml = cfg.get("sender", {}) or {}
+    sender_lon = args.sender_lon if args.sender_lon is not None else sender_yaml.get("lon")
+    sender_lat = args.sender_lat if args.sender_lat is not None else sender_yaml.get("lat")
+
+    if sender_lon is None:
+        raise ValueError("Sender longitude not set. Provide --sender-lon or add sender.lon to config.")
+    if sender_lat is None:
+        raise ValueError("Sender latitude not set. Provide --sender-lat or add sender.lat to config.")
+
     results = run_pipeline_from_config(
         shipments,
         tariff_matrix=tariff_matrix,
-        sender_lon=args.sender_lon,
-        sender_lat=args.sender_lat,
+        sender_lon=float(sender_lon),
+        sender_lat=float(sender_lat),
         cfg=cfg,
     )
 
