@@ -15,7 +15,7 @@ from .cost_model import CostModelConfig, add_freight_costs
 from .profile_application import apply_profiles_to_shipments, ProfileApplicationConfig
 from .routing_vrp import route
 from .maps import create_cluster_map_html, MapConfig
-from .weekday_plots import write_weekday_plots_pdf
+from .weekday_plots import write_weekday_plots_pdf, write_freight_cost_comparison_pdf
 
 
 # -----------------------------------------------------------------------------
@@ -476,6 +476,18 @@ def run_pipeline_from_config(
                 run_name=out_dir.name,
                 clustered="Clustered",
             )
+
+        # Freight cost comparison chart (three-way when clustered, two-way otherwise)
+        df_profiled_for_plot = shipments_after_nc_costed if shipments_after_nc_costed is not None else shipments_after_nc
+        df_clustered_for_plot = None
+        if do_clustered and shipments_after_c is not None:
+            df_clustered_for_plot = shipments_after_c_costed if shipments_after_c_costed is not None else shipments_after_c
+        write_freight_cost_comparison_pdf(
+            df_original=df_costed,
+            df_profiled=df_profiled_for_plot,
+            df_clustered=df_clustered_for_plot,
+            out_pdf=plots_dir / "freight_cost_comparison.pdf",
+        )
 
     # ----------------------------
     # Return (useful for notebooks/tests)

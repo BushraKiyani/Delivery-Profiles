@@ -144,3 +144,103 @@ def write_weekday_plots_pdf(
         plt.close(fig1)
         plt.close(fig2)
         plt.close(fig3)
+
+
+WEEKDAY_FULL_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+
+def plot_freight_cost_comparison(
+    df_original: pd.DataFrame,
+    df_profiled: pd.DataFrame,
+    df_clustered: pd.DataFrame | None = None,
+    *,
+    freight_cost_col: str = "Freight_Cost",
+) -> plt.Figure:
+    """
+    Bar chart showing freight cost % per weekday for up to three scenarios:
+      Without Profiles / With Profiles / Clustered Profiles (optional).
+
+    Fixes vs legacy freight_cost_comparison_plot():
+      - df_original is a DataFrame, not a file path
+      - All series reindexed to Mon-Fri so a missing weekday never crashes
+      - Bar labels positioned relative to the percentage value, not the absolute cost
+      - No seaborn dependency
+      - Returns the figure; caller decides whether to save or show
+    """
+    def _pct_by_weekday(df: pd.DataFrame) -> pd.Series:
+        df = ensure_weekday(df.copy())
+        df[freight_cost_col] = pd.to_numeric(df[freight_cost_col], errors="coerce")
+        totals = (
+            df.groupby("Weekday")[freight_cost_col]
+            .sum()
+            .reindex(WEEKDAY_ORDER)
+            .fillna(0.0)
+        )
+        grand = totals.sum() or 1.0
+        return (totals / grand) * 100.0
+
+    pct_orig = _pct_by_weekday(df_original)
+    pct_prof = _pct_by_weekday(df_profiled)
+    pct_clus = _pct_by_weekday(df_clustered) if df_clustered is not None else None
+
+    has_clustered = pct_clus is not None
+    n_series = 3 if has_clustered else 2
+    bar_w = 0.25 if has_clustered else 0.35
+    x = np.arange(len(WEEKDAY_ORDER))
+    offsets = np.linspace(-(n_series - 1) / 2.0 * bar_w, (n_series - 1) / 2.0 * bar_w, n_series)
+
+    # Colours match legacy intent without seaborn
+    col_clus = "#4C72B0"   # blue  — Clustered Profiles
+    col_prof = "#55A868"   # green — Profiles Only
+    col_orig = "#C44E52"   # red   — Without Profiles
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    series = []
+    if has_clustered:
+        series = [
+            (pct_clus.values, offsets[0], "Clustered Profiles", col_clus),
+            (pct_prof.values, offsets[1], "Profiles Only",      col_prof),
+            (pct_orig.values, offsets[2], "Without Profiles",   col_orig),
+        ]
+    else:
+        series = [
+            (pct_prof.values, offsets[0], "Profiles Only",    col_prof),
+            (pct_orig.values, offsets[1], "Without Profiles", col_orig),
+        ]
+
+    for vals, offset, label, color in series:
+        ax.bar(x + offset, vals, bar_w, label=label, color=color)
+        for xi, v in zip(x, vals):
+            ax.text(xi + offset, v + 0.3, f"{v:.2f}%", ha="center", va="bottom", fontsize=8)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(WEEKDAY_FULL_NAMES)
+    ax.set_xlabel("Weekday")
+    ax.set_ylabel("Freight Cost (%)")
+    ax.set_title("Freight Cost Distribution by Weekday")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def write_freight_cost_comparison_pdf(
+    *,
+    df_original: pd.DataFrame,
+    df_profiled: pd.DataFrame,
+    df_clustered: pd.DataFrame | None = None,
+    out_pdf: str | Path,
+    freight_cost_col: str = "Freight_Cost",
+) -> None:
+    out_pdf = Path(out_pdf)
+    out_pdf.parent.mkdir(parents=True, exist_ok=True)
+
+    fig = plot_freight_cost_comparison(
+        df_original,
+        df_profiled,
+        df_clustered=df_clustered,
+        freight_cost_col=freight_cost_col,
+    )
+    with PdfPages(out_pdf, keep_empty=False) as pp:
+        pp.savefig(fig, bbox_inches="tight")
+    plt.close(fig)
