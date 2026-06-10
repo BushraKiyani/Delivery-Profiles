@@ -128,12 +128,12 @@ def create_cluster_map_html(
             popup=popup,
         ).add_to(m)
 
-    # sender marker
+    # sender marker — black pin with house icon, distinct from all cluster circle markers
     if sender_coord is not None:
         folium.Marker(
             location=[sender_coord[0], sender_coord[1]],
-            popup="Sender/Depot",
-            icon=folium.Icon(color="blue", icon="info-sign"),
+            popup="Sender / Depot",
+            icon=folium.Icon(color="black", icon="home", prefix="glyphicon"),
         ).add_to(m)
 
     folium.LayerControl().add_to(m)

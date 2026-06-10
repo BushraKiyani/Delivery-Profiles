@@ -55,8 +55,8 @@ cost_model:
 
 variability:
   min_frequency: 2
-  var_weight_max: 1.33
-  var_frequency_max: 1.33
+  var_weight_max: 0.75
+  var_frequency_max: 0.75
 
 pattern_assignment:
   days: 5
@@ -65,7 +65,7 @@ pattern_assignment:
 
 clustering:
   enabled: true
-  num_clusters: 4
+  num_clusters: 5
   random_state: 0
 
 post_cost_recalc:

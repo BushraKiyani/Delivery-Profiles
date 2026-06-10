@@ -131,7 +131,7 @@ def apply_profiles_to_shipments(
 
                 if total_w <= cfg.max_truck_weight:
                     avg_delay = float(
-                        (ship_day - buffer_df[cfg.loading_date_col]).dt.days.mean()
+                        (pd.Timestamp(ship_day) - pd.to_datetime(buffer_df[cfg.loading_date_col])).dt.days.mean()
                     )
                     out_rows.append(
                         {
