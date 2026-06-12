@@ -55,8 +55,8 @@ cost_model:
 
 variability:
   min_frequency: 1
-  var_weight_max: 2
-  var_frequency_max: 2
+  var_weight_max: 1.33
+  var_frequency_max: 1.33
 
 pattern_assignment:
   days: 5

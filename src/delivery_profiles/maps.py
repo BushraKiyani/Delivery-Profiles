@@ -48,6 +48,25 @@ def _add_google_tiles(m: folium.Map, kind: str) -> None:
         ).add_to(m)
 
 
+# 12 perceptually distinct cluster colors (ColorBrewer-inspired + extended)
+_CLUSTER_PALETTE: list = [
+    "#E63946",  # vivid red
+    "#2196F3",  # bright blue
+    "#4CAF50",  # vibrant green
+    "#FF9800",  # orange
+    "#9C27B0",  # purple
+    "#00BCD4",  # cyan
+    "#FF4081",  # hot pink
+    "#8BC34A",  # lime green
+    "#FF5722",  # deep orange
+    "#3F51B5",  # indigo
+    "#009688",  # teal
+    "#FFC107",  # amber
+]
+_OUTLIER_FILL   = "#9E9E9E"  # medium grey — DBSCAN noise points
+_OUTLIER_BORDER = "#616161"  # darker grey border
+
+
 _ROUTE_COLORS: Dict[str, str] = {
     "Monday":    "blue",
     "Tuesday":   "green",
@@ -212,36 +231,56 @@ def create_cluster_map_html(
     if cfg.provider in ("google_roadmap", "google_satellite"):
         _add_google_tiles(m, cfg.provider)
 
-    # color palette
-    base_colors = [
-        "red", "blue", "green", "orange", "purple", "cadetblue",
-        "darkred", "darkblue", "darkgreen", "gray"
-    ]
-    cluster_ids = sorted(coords[cluster_col].dropna().unique().tolist())
-    cluster_color_map: Dict[int, str] = {int(c): base_colors[i % len(base_colors)] for i, c in enumerate(cluster_ids)}
+    # Assign palette colors to real cluster IDs (≥0); outliers (-1) get their own style
+    real_cluster_ids = sorted(
+        int(c) for c in coords[cluster_col].dropna().unique() if int(c) >= 0
+    )
+    cluster_color_map: Dict[int, str] = {
+        cid: _CLUSTER_PALETTE[i % len(_CLUSTER_PALETTE)]
+        for i, cid in enumerate(real_cluster_ids)
+    }
 
     # markers
     for _, r in coords.iterrows():
         rid = int(r[coord_id_col])
-        cl = int(r[cluster_col])
+        cl  = int(r[cluster_col])
 
-        try:
-            pattern = prof.loc[(rid, cl)][prof_pattern_col]
-        except Exception:
-            pattern = "NA"
-
-        if cfg.anonymize:
-            popup = f"Recipient: {rid} | Cluster: {cl} | Profile: {pattern}"
+        if cl < 0:
+            # DBSCAN outlier — small grey circle, note in popup
+            fill_col   = _OUTLIER_FILL
+            border_col = _OUTLIER_BORDER
+            radius     = 6
+            fill_op    = 0.45
+            op         = 0.7
+            if cfg.anonymize:
+                popup_text = f"Recipient: {rid} | Outlier — no cluster assigned"
+            else:
+                popup_text = f"Recipient_ID={rid} | Outlier — no cluster assigned"
         else:
-            popup = f"Recipient_ID={rid}, Cluster={cl}, Pattern={pattern}"
+            fill_col   = cluster_color_map.get(cl, "#607D8B")
+            border_col = fill_col
+            radius     = 9
+            fill_op    = 0.75
+            op         = 0.9
+            try:
+                pattern = prof.loc[(rid, cl)][prof_pattern_col]
+            except Exception:
+                pattern = "NA"
+            if cfg.anonymize:
+                popup_text = f"Recipient: {rid} | Cluster: {cl} | Profile: {pattern}"
+            else:
+                popup_text = f"Recipient_ID={rid}, Cluster={cl}, Pattern={pattern}"
 
         folium.CircleMarker(
             location=(float(r[lat_col]), float(r[lon_col])),
-            radius=5,
-            color=cluster_color_map.get(cl, "black"),
+            radius=radius,
+            color=border_col,
+            weight=1.5,
             fill=True,
-            fill_color=cluster_color_map.get(cl, "black"),
-            popup=popup,
+            fill_color=fill_col,
+            fill_opacity=fill_op,
+            opacity=op,
+            popup=folium.Popup(popup_text, max_width=300),
         ).add_to(m)
 
     # sender marker — black pin with house icon, distinct from all cluster circle markers

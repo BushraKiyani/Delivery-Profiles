@@ -93,8 +93,20 @@ def _write_tableau_export(
         return
 
     combined = pd.concat(parts, ignore_index=True)
+
+    # Derived readable columns — present only when source columns exist in the data
+    if "Real_Distance" in combined.columns:
+        combined["Distance_km"] = pd.to_numeric(combined["Real_Distance"], errors="coerce") / 1000.0
+    else:
+        combined["Distance_km"] = float("nan")
+
+    if "Duration" in combined.columns:
+        combined["Duration_min"] = pd.to_numeric(combined["Duration"], errors="coerce") / 60.0
+    else:
+        combined["Duration_min"] = float("nan")
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    combined.to_csv(out_path, sep=";", encoding="latin-1", decimal=".", index=False)
+    combined.to_csv(out_path, sep=",", encoding="utf-8-sig", decimal=".", index=False)
     print(f"[Tableau export]  {len(combined):,} rows → {out_path}")
 
 
@@ -645,6 +657,7 @@ def run_pipeline_from_config(
     pattern_only_dbscan = unchanged_dbscan = shipments_after_dbscan = None
     shipments_after_dbscan_costed = None
     suffix_dbscan = None
+    _dbscan_fallback = False
 
     if do_clustered:
         # ── KMeans ───────────────────────────────────────────────────────
@@ -726,7 +739,20 @@ def run_pipeline_from_config(
         coords_dbscan.to_csv(out_dir / "coords_clustered_dbscan.csv", index=False)
         suffix_dbscan = _suffix_from_variability(v_yaml, True, "dbscan")
 
-        if not profiles_dbscan.empty:
+        # Quality check — fall back to KMeans when DBSCAN produces ≤1 cluster
+        _dbscan_n_cls = int(profiles_dbscan["Cluster"].nunique()) if not profiles_dbscan.empty else 0
+        _dbscan_fallback = _dbscan_n_cls <= 1
+        if _dbscan_fallback:
+            _warn = "all noise/outliers" if _dbscan_n_cls == 0 else "only 1 cluster found"
+            print(
+                f"\n[DBSCAN] Warning: {_warn} after auto-tuned eps — "
+                f"falling back to KMeans results for DBSCAN outputs.\n"
+            )
+            pattern_only_dbscan   = pattern_only_c
+            unchanged_dbscan      = unchanged_c
+            shipments_after_dbscan        = shipments_after_c
+            shipments_after_dbscan_costed = shipments_after_c_costed
+        else:
             _log_overweight_check(profiles_dbscan, df_var, _app_cfg.max_truck_weight, label="dbscan-clustered")
 
             pattern_only_dbscan, unchanged_dbscan, shipments_after_dbscan = apply_profiles_to_shipments(
@@ -760,8 +786,6 @@ def run_pipeline_from_config(
                     out_dir / f"shipments_after_profiles_costed_{suffix_dbscan}.csv",
                     sep=";", encoding="latin1", decimal=".", index=False,
                 )
-        else:
-            print("[DBSCAN] All recipients are noise points; no DBSCAN profiles generated.")
 
 
     # ----------------------------
@@ -818,7 +842,7 @@ def run_pipeline_from_config(
 
         # KMeans map
         if coords_clustered is not None and profiles_c is not None:
-            create_cluster_map_html(
+            _km_html = create_cluster_map_html(
                 coords_clustered=coords_clustered,
                 profiles_clustered=profiles_c,
                 out_html=out_dir / "maps" / f"cluster_map_{suffix_c}.html",
@@ -826,17 +850,30 @@ def run_pipeline_from_config(
                 cfg=map_cfg,
                 routes_json_path=_routes_path,
             )
+            print(f"[Maps] Saved → {_km_html.resolve()}")
+        else:
+            print("[Maps] Skipping KMeans cluster map: no clustered coordinates available.")
 
-        # DBSCAN map (coords contain outlier markers with Cluster=-1 → shown in gray)
-        if coords_dbscan is not None and profiles_dbscan is not None and not profiles_dbscan.empty:
-            create_cluster_map_html(
-                coords_clustered=coords_dbscan,
-                profiles_clustered=profiles_dbscan,
+        # DBSCAN map — if DBSCAN was degenerate, generate the map using KMeans coords/profiles
+        # so the file still exists and reflects the geographic arrangement.
+        if _dbscan_fallback:
+            _db_coords_for_map   = coords_clustered
+            _db_profiles_for_map = profiles_c
+        else:
+            _db_coords_for_map   = coords_dbscan
+            _db_profiles_for_map = profiles_dbscan
+        if _db_coords_for_map is not None and _db_profiles_for_map is not None and not _db_profiles_for_map.empty:
+            _db_html = create_cluster_map_html(
+                coords_clustered=_db_coords_for_map,
+                profiles_clustered=_db_profiles_for_map,
                 out_html=out_dir / "maps" / f"cluster_map_{suffix_dbscan}.html",
                 sender_coord=_sender,
                 cfg=map_cfg,
                 routes_json_path=_routes_path,
             )
+            print(f"[Maps] Saved → {_db_html.resolve()}")
+        else:
+            print("[Maps] Skipping DBSCAN cluster map: no coordinates available.")
 
     # ----------------------------
     # 10) Weekday plots
@@ -897,7 +934,7 @@ def run_pipeline_from_config(
             df_original=df_costed,
             df_profiled=df_profiled_for_plot,
             df_clustered=df_kmeans_for_plot,
-            df_clustered_dbscan=df_dbscan_for_plot,
+            df_dbscan=df_dbscan_for_plot,
             out_pdf=plots_dir / "freight_cost_comparison.pdf",
             profiled_ids=_profiled_ids,
         )
@@ -906,7 +943,7 @@ def run_pipeline_from_config(
             df_original=df_costed,
             df_profiled=df_profiled_for_plot,
             df_clustered=df_kmeans_for_plot,
-            df_clustered_dbscan=df_dbscan_for_plot,
+            df_dbscan=df_dbscan_for_plot,
             out_pdf=plots_dir / "weight_distribution_comparison.pdf",
             profiled_ids=_profiled_ids,
         )

@@ -154,13 +154,13 @@ def plot_freight_cost_comparison(
     df_profiled: pd.DataFrame,
     df_clustered: "pd.DataFrame | None" = None,
     *,
-    df_clustered_dbscan: "pd.DataFrame | None" = None,
+    df_dbscan: "pd.DataFrame | None" = None,
     freight_cost_col: str = "Freight_Cost",
     title: str = "Freight Cost Distribution by Weekday",
 ) -> plt.Figure:
     """
     Bar chart: freight cost % per weekday for 2-4 scenarios.
-    When df_clustered_dbscan is supplied, df_clustered is labelled
+    When df_dbscan is supplied, df_clustered is labelled
     'KMeans Clustered' instead of 'Clustered Profiles'.
     """
     def _pct(df: pd.DataFrame) -> pd.Series:
@@ -172,9 +172,9 @@ def plot_freight_cost_comparison(
     pct_orig   = _pct(df_original)
     pct_prof   = _pct(df_profiled)
     pct_clus   = _pct(df_clustered)        if df_clustered      is not None else None
-    pct_dbscan = _pct(df_clustered_dbscan) if df_clustered_dbscan is not None else None
+    pct_dbscan = _pct(df_dbscan) if df_dbscan is not None else None
 
-    col_dbscan = "#DD8452"   # orange — DBSCAN Clustered
+    col_dbscan = "#9467BD"   # purple — DBSCAN Clustered
     col_clus   = "#4C72B0"   # blue   — KMeans / Clustered Profiles
     col_prof   = "#55A868"   # green  — Profiles Only
     col_orig   = "#C44E52"   # red    — Without Profiles
@@ -217,7 +217,7 @@ def write_freight_cost_comparison_pdf(
     df_original: pd.DataFrame,
     df_profiled: pd.DataFrame,
     df_clustered: "pd.DataFrame | None" = None,
-    df_clustered_dbscan: "pd.DataFrame | None" = None,
+    df_dbscan: "pd.DataFrame | None" = None,
     out_pdf: "str | Path",
     freight_cost_col: str = "Freight_Cost",
     profiled_ids: "set[int] | None" = None,
@@ -235,7 +235,7 @@ def write_freight_cost_comparison_pdf(
         df_original,
         df_profiled,
         df_clustered=df_clustered,
-        df_clustered_dbscan=df_clustered_dbscan,
+        df_dbscan=df_dbscan,
         freight_cost_col=freight_cost_col,
         title="Freight Cost Distribution by Weekday — Full Fleet",
     )
@@ -255,7 +255,7 @@ def write_freight_cost_comparison_pdf(
                 _filter(df_original),
                 _filter(df_profiled),
                 df_clustered=_filter(df_clustered) if df_clustered is not None else None,
-                df_clustered_dbscan=_filter(df_clustered_dbscan) if df_clustered_dbscan is not None else None,
+                df_dbscan=_filter(df_dbscan) if df_dbscan is not None else None,
                 freight_cost_col=freight_cost_col,
                 title=f"Freight Cost Distribution by Weekday — Profiled Recipients Only (n={len(profiled_ids)})",
             )
@@ -268,13 +268,13 @@ def plot_weight_distribution_comparison(
     df_profiled: pd.DataFrame,
     df_clustered: "pd.DataFrame | None" = None,
     *,
-    df_clustered_dbscan: "pd.DataFrame | None" = None,
+    df_dbscan: "pd.DataFrame | None" = None,
     weight_col: str = "Weight",
     title: str = "Weight Distribution by Weekday",
 ) -> plt.Figure:
     """
     Bar chart: weight % per weekday for 2-4 scenarios.
-    When df_clustered_dbscan is supplied, df_clustered is labelled
+    When df_dbscan is supplied, df_clustered is labelled
     'KMeans Clustered' instead of 'Clustered Profiles'.
     """
     def _pct(df: pd.DataFrame) -> pd.Series:
@@ -286,9 +286,9 @@ def plot_weight_distribution_comparison(
     pct_orig   = _pct(df_original)
     pct_prof   = _pct(df_profiled)
     pct_clus   = _pct(df_clustered)        if df_clustered      is not None else None
-    pct_dbscan = _pct(df_clustered_dbscan) if df_clustered_dbscan is not None else None
+    pct_dbscan = _pct(df_dbscan) if df_dbscan is not None else None
 
-    col_dbscan = "#DD8452"
+    col_dbscan = "#9467BD"
     col_clus   = "#4C72B0"
     col_prof   = "#55A868"
     col_orig   = "#C44E52"
@@ -330,7 +330,7 @@ def write_weight_distribution_pdf(
     df_original: pd.DataFrame,
     df_profiled: pd.DataFrame,
     df_clustered: "pd.DataFrame | None" = None,
-    df_clustered_dbscan: "pd.DataFrame | None" = None,
+    df_dbscan: "pd.DataFrame | None" = None,
     out_pdf: "str | Path",
     weight_col: str = "Weight",
     profiled_ids: "set[int] | None" = None,
@@ -347,7 +347,7 @@ def write_weight_distribution_pdf(
         df_original,
         df_profiled,
         df_clustered=df_clustered,
-        df_clustered_dbscan=df_clustered_dbscan,
+        df_dbscan=df_dbscan,
         weight_col=weight_col,
         title="Weight Distribution by Weekday — Full Fleet",
     )
@@ -367,7 +367,7 @@ def write_weight_distribution_pdf(
                 _filter(df_original),
                 _filter(df_profiled),
                 df_clustered=_filter(df_clustered) if df_clustered is not None else None,
-                df_clustered_dbscan=_filter(df_clustered_dbscan) if df_clustered_dbscan is not None else None,
+                df_dbscan=_filter(df_dbscan) if df_dbscan is not None else None,
                 weight_col=weight_col,
                 title=f"Weight Distribution by Weekday — Profiled Recipients Only (n={len(profiled_ids)})",
             )
@@ -526,62 +526,108 @@ def _write_pipeline_summary_pdf(
     df_best: pd.DataFrame,
     out_pdf: Path,
 ) -> None:
-    fig = plt.figure(figsize=(12, 10))
+    fig = plt.figure(figsize=(12, 12))
     gs = fig.add_gridspec(
-        3, 2,
-        height_ratios=[0.7, 2.8, 3.2],
-        hspace=0.5,
-        wspace=0.3,
-        top=0.94, bottom=0.05, left=0.05, right=0.95,
+        4, 2,
+        height_ratios=[0.42, 1.0, 4.2, 3.5],
+        hspace=0.50,
+        wspace=0.30,
+        top=0.97, bottom=0.04, left=0.04, right=0.96,
     )
 
-    # ── Headline ──────────────────────────────────────────────────────────
-    ax_head = fig.add_subplot(gs[0, :])
-    ax_head.axis("off")
-    reduction = m["peak_reduction_pp"]
-    headline = (
-        f"Peak day reduced from  {m['max_w_before']:.1f}%  →  {m['max_w_after']:.1f}%"
-        f"   ({'-' if reduction >= 0 else '+'}{abs(reduction):.1f} pp)"
+    # ── Title + run-parameter subtitle ────────────────────────────────────────
+    ax_title = fig.add_subplot(gs[0, :])
+    ax_title.axis("off")
+    subtitle = (
+        f"var_weight ≤ {m['var_weight_max']},  "
+        f"var_freq ≤ {m['var_frequency_max']},  "
+        f"min_frequency ≥ {m['min_frequency']},  "
+        f"{m['n_profiled']:,} / {m['n_total']:,} recipients profiled"
     )
-    bg   = "#d5e8d4" if reduction > 0 else "#ffe6cc"
-    edge = "#82b366" if reduction > 0 else "#d6b656"
-    ax_head.text(
-        0.5, 0.5, headline,
+    ax_title.text(
+        0.5, 0.80, "Pipeline Summary Report",
         ha="center", va="center",
-        fontsize=18, fontweight="bold", color="#2c3e50",
-        transform=ax_head.transAxes,
-        bbox=dict(boxstyle="round,pad=0.5", facecolor=bg, edgecolor=edge, linewidth=2),
+        fontsize=15, fontweight="bold", color="#2c3e50",
+        transform=ax_title.transAxes,
+    )
+    ax_title.text(
+        0.5, 0.18, subtitle,
+        ha="center", va="center",
+        fontsize=9, color="#666666",
+        transform=ax_title.transAxes,
     )
 
-    # ── Metrics table ─────────────────────────────────────────────────────
-    ax_tbl = fig.add_subplot(gs[1, :])
+    # ── Headline callout (large, colored box) ──────────────────────────────────
+    ax_head = fig.add_subplot(gs[1, :])
+    reduction = m["peak_reduction_pp"]
+    sign  = "-" if reduction >= 0 else "+"
+    bg    = "#d5e8d4" if reduction > 0 else "#ffe6cc"
+    edge  = "#82b366" if reduction > 0 else "#d6b656"
+    ax_head.set_facecolor(bg)
+    for sp in ax_head.spines.values():
+        sp.set_linewidth(2.5)
+        sp.set_edgecolor(edge)
+    ax_head.set_xticks([])
+    ax_head.set_yticks([])
+    ax_head.text(
+        0.5, 0.63,
+        f"{m['max_w_before']:.1f}%   →   {m['max_w_after']:.1f}%",
+        ha="center", va="center",
+        fontsize=28, fontweight="bold", color="#2c3e50",
+        transform=ax_head.transAxes,
+    )
+    ax_head.text(
+        0.5, 0.26,
+        f"Peak day reduced by  {abs(reduction):.1f} percentage points",
+        ha="center", va="center",
+        fontsize=13, color="#4a4a4a",
+        transform=ax_head.transAxes,
+    )
+
+    # ── Grouped metrics table ──────────────────────────────────────────────────
+    ax_tbl = fig.add_subplot(gs[2, :])
     ax_tbl.axis("off")
 
-    rows = [
-        ["Recipients — total",          str(m["n_total"]),
-         "Recipients — profiled",        f"{m['n_profiled']}  ({m['pct_profiled']:.1f}%)"],
-        ["Freight cost coverage",        f"{m['pct_cost_coverage']:.1f}%  (EUR {m['covered_cost']:,.0f})",
-         "Max truck weight",             f"{m['max_truck_weight']:,.0f} kg"],
-        ["Monday weight — before",       f"{m['mon_w_before']:.1f}%",
-         "Monday weight — after",        f"{m['mon_w_after']:.1f}%  ({m['best_label']})"],
-        ["Friday weight — before",       f"{m['fri_w_before']:.1f}%",
-         "Friday weight — after",        f"{m['fri_w_after']:.1f}%"],
-        ["Peak daily weight — before",   f"{m['max_w_before']:.1f}%  ({m['max_w_day_before']})",
-         "Peak daily weight — after",    f"{m['max_w_after']:.1f}%  ({m['max_w_day_after']})"],
-        ["Monday cost — before",         f"{m['mon_c_before']:.1f}%",
-         "Monday cost — after",          f"{m['mon_c_after']:.1f}%"],
-        ["Peak daily cost — before",     f"{m['max_c_before']:.1f}%  ({m['max_c_day_before']})",
-         "Peak daily cost — after",      f"{m['max_c_after']:.1f}%  ({m['max_c_day_after']})"],
-        ["Recipients needing split",     str(m["n_split_recipients"]),
-         "Total extra trucks",           str(m["n_extra_trucks"])],
-        ["var_weight_max",               str(m["var_weight_max"]),
-         "var_frequency_max",            str(m["var_frequency_max"])],
-        ["min_frequency",                str(m["min_frequency"]),
-         "", ""],
+    _SEC_BG    = "#EBF4FF"  # light blue-tinted section header
+    _SEC_EDGE  = "#BEE3F8"
+    _SEC_COLOR = "#2B6CB0"
+
+    sections = [
+        ("COVERAGE", [
+            ["Recipients — total",    f"{m['n_total']:,}",
+             "Recipients — profiled", f"{m['n_profiled']:,}  ({m['pct_profiled']:.1f}%)"],
+            ["Freight cost coverage",  f"{m['pct_cost_coverage']:.1f}%   (EUR {m['covered_cost']:,.0f})",
+             "", ""],
+        ]),
+        ("WORKLOAD LEVELING", [
+            ["Monday weight — before",  f"{m['mon_w_before']:.1f}%",
+             "Monday weight — after",   f"{m['mon_w_after']:.1f}%   ({m['best_label']})"],
+            ["Friday weight — before",  f"{m['fri_w_before']:.1f}%",
+             "Friday weight — after",   f"{m['fri_w_after']:.1f}%"],
+            ["Peak weight — before",    f"{m['max_w_before']:.1f}%   ({m['max_w_day_before']})",
+             "Peak weight — after",     f"{m['max_w_after']:.1f}%   ({m['max_w_day_after']})"],
+            ["Peak cost — before",      f"{m['max_c_before']:.1f}%   ({m['max_c_day_before']})",
+             "Peak cost — after",       f"{m['max_c_after']:.1f}%   ({m['max_c_day_after']})"],
+        ]),
+        ("TRUCK LOGISTICS", [
+            ["Max truck weight",           f"{m['max_truck_weight']:,.0f} kg",
+             "Recipients needing split",   str(m["n_split_recipients"])],
+            ["Total extra trucks",         str(m["n_extra_trucks"]),
+             "", ""],
+        ]),
     ]
 
+    cell_text  = []
+    row_types  = []
+    for sec_name, data_rows in sections:
+        cell_text.append([f"  {sec_name}", "", "", ""])
+        row_types.append("section")
+        for row in data_rows:
+            cell_text.append(row)
+            row_types.append("data")
+
     tbl = ax_tbl.table(
-        cellText=rows,
+        cellText=cell_text,
         colLabels=["Metric", "Value", "Metric", "Value"],
         cellLoc="left",
         loc="center",
@@ -590,26 +636,39 @@ def _write_pipeline_summary_pdf(
     tbl.auto_set_font_size(False)
     tbl.set_fontsize(9)
 
+    # Column header row
     for j in range(4):
         tbl[(0, j)].set_facecolor("#2c3e50")
         tbl[(0, j)].set_text_props(color="white", fontweight="bold")
         tbl[(0, j)].set_edgecolor("white")
 
-    for i in range(1, len(rows) + 1):
-        bg_row = "#f2f2f2" if i % 2 == 0 else "white"
-        for j in range(4):
-            tbl[(i, j)].set_facecolor(bg_row)
-            tbl[(i, j)].set_edgecolor("#dddddd")
-            if j in (1, 3):
-                tbl[(i, j)].set_text_props(fontweight="bold")
+    # Section headers and alternating data rows
+    data_row_count = 0
+    for i, rtype in enumerate(row_types, start=1):
+        if rtype == "section":
+            for j in range(4):
+                tbl[(i, j)].set_facecolor(_SEC_BG)
+                tbl[(i, j)].set_edgecolor(_SEC_EDGE)
+                tbl[(i, j)].set_text_props(
+                    color=_SEC_COLOR, fontweight="bold", fontsize=8.5,
+                )
+        else:
+            bg_row = "#f7f7f7" if data_row_count % 2 == 0 else "white"
+            data_row_count += 1
+            for j in range(4):
+                tbl[(i, j)].set_facecolor(bg_row)
+                tbl[(i, j)].set_edgecolor("#e0e0e0")
+                if j in (1, 3):
+                    tbl[(i, j)].set_text_props(fontweight="bold")
 
     tbl.auto_set_column_width([0, 1, 2, 3])
 
-    # ── Side-by-side bar charts ───────────────────────────────────────────
-    ax_b = fig.add_subplot(gs[2, 0])
-    ax_a = fig.add_subplot(gs[2, 1])
+    # ── Side-by-side bar charts ────────────────────────────────────────────────
+    ax_b = fig.add_subplot(gs[3, 0])
+    ax_a = fig.add_subplot(gs[3, 1])
 
     y_max = max(m["w_before"].max(), m["w_after"].max()) * 1.25
+    y_max = max(y_max, 24.0)  # always show the 20% line with headroom
     x = np.arange(len(WEEKDAY_FULL_NAMES))
 
     for ax, pct, color, title in [
@@ -618,8 +677,15 @@ def _write_pipeline_summary_pdf(
     ]:
         ax.bar(x, pct.values, color=color, alpha=0.85, width=0.6)
         for xi, v in zip(x, pct.values):
-            ax.text(xi, v + 0.3, f"{v:.1f}%", ha="center", va="bottom", fontsize=8)
-        ax.axhline(y=20, color="#888", linestyle="--", linewidth=0.8, alpha=0.5)
+            # Nudge label above the 20% reference line when the bar top is close
+            label_y = 20.6 if 18.8 <= v <= 20.0 else v + 0.3
+            ax.text(xi, label_y, f"{v:.1f}%", ha="center", va="bottom", fontsize=8)
+        ax.axhline(y=20, color="#4A5568", linestyle="--", linewidth=1.2)
+        ax.text(
+            4.45, 20.5, "Equal distribution (20%)",
+            ha="right", va="bottom", fontsize=7.5,
+            color="#4A5568", style="italic",
+        )
         ax.set_xticks(x)
         ax.set_xticklabels(WEEKDAY_FULL_NAMES, fontsize=8)
         ax.set_ylabel("Weight (%)", fontsize=9)
@@ -628,9 +694,6 @@ def _write_pipeline_summary_pdf(
         ax.grid(axis="y", alpha=0.3)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
-
-    ax_b.text(4.45, 20.5, "equal (20%)", ha="right", va="bottom",
-              fontsize=7, color="#888", style="italic")
 
     with PdfPages(out_pdf, keep_empty=False) as pp:
         pp.savefig(fig, bbox_inches="tight")

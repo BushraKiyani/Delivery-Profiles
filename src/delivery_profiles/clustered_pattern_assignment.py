@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from ortools.linear_solver import pywraplp
 from sklearn.cluster import KMeans, DBSCAN
+from sklearn.neighbors import NearestNeighbors
 from math import radians
 
 
@@ -142,6 +143,20 @@ def build_parameters(df_filtered: pd.DataFrame, cfg: ClusteredPatternAssignmentC
     return out[["Recipient_ID", "Frequency", "Demand"]].reset_index(drop=True)
 
 
+def _find_elbow(k_distances: np.ndarray) -> float:
+    """
+    Returns the elbow value from a sorted k-distance curve using the
+    maximum-perpendicular-distance-to-diagonal method (classic kneedle approach).
+    """
+    n = len(k_distances)
+    if n < 3:
+        return float(k_distances[-1])
+    xn = np.linspace(0.0, 1.0, n)
+    span = k_distances[-1] - k_distances[0]
+    yn = (k_distances - k_distances[0]) / (span if span > 0 else 1.0)
+    return float(k_distances[int(np.argmax(np.abs(yn - xn)))])
+
+
 def add_clusters(
     df_params: pd.DataFrame,
     coordinate_list: List[Dict],
@@ -172,14 +187,26 @@ def add_clusters(
     X = sel[["Latitude_Radians", "Longitude_Radians"]].to_numpy()
 
     if cfg.method == "dbscan":
-        db = DBSCAN(eps=cfg.eps, min_samples=cfg.min_samples, metric="euclidean")
+        # Auto-tune eps from the k-distance elbow; fall back to cfg.eps when too few points
+        k = max(1, cfg.min_samples)
+        if len(X) >= k + 1:
+            nbrs = NearestNeighbors(n_neighbors=k, metric="euclidean").fit(X)
+            dists, _ = nbrs.kneighbors(X)
+            k_dists = np.sort(dists[:, k - 1])
+            eps = _find_elbow(k_dists)
+        else:
+            eps = cfg.eps
+        eps_km = eps * 6371.0
+        print(f"\n[DBSCAN] Auto-detected eps={eps:.4f} (approx {eps_km:.1f} km)")
+
+        db = DBSCAN(eps=eps, min_samples=cfg.min_samples, metric="euclidean")
         labels = db.fit_predict(X).astype(int)
         sel["Cluster"] = labels
 
         n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
         n_outliers  = int((labels == -1).sum())
         print(
-            f"\n[DBSCAN]  {n_clusters} cluster(s) found,"
+            f"[DBSCAN]  {n_clusters} cluster(s) found,"
             f" {n_outliers}/{len(sel)} recipient(s) are noise/outliers"
             f" (will fall through to non-clustered patterns)\n"
         )
