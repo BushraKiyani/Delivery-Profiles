@@ -516,4 +516,4 @@ The repository intentionally does not include data or output folders.
 
 ## License
 
-No license.
+MIT License — see [LICENSE](LICENSE) for details.
