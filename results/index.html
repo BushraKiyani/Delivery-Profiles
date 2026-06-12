@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery Profiles — Interactive Cluster Maps</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 760px;
+      margin: 60px auto;
+      padding: 0 24px;
+      color: #2d3748;
+      background: #f7fafc;
+    }
+    h1 {
+      font-size: 1.55rem;
+      color: #1a202c;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 14px;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      color: #718096;
+      font-size: 0.9rem;
+      margin: 0 0 36px;
+    }
+    .card {
+      display: block;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 22px 26px;
+      margin-bottom: 18px;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .card:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.09);
+      border-color: #bee3f8;
+    }
+    .card h2 {
+      font-size: 1.05rem;
+      margin: 0 0 7px;
+      color: #2b6cb0;
+    }
+    .card p {
+      margin: 0 0 10px;
+      font-size: 0.88rem;
+      color: #4a5568;
+      line-height: 1.55;
+    }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .tag {
+      font-size: 0.72rem;
+      background: #ebf8ff;
+      color: #2b6cb0;
+      border-radius: 4px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+    .tag.green { background: #f0fff4; color: #276749; }
+    .arrow {
+      float: right;
+      font-size: 1.1rem;
+      color: #a0aec0;
+      margin-top: 2px;
+    }
+    .back {
+      margin-top: 44px;
+      font-size: 0.83rem;
+    }
+    .back a { color: #718096; text-decoration: none; }
+    .back a:hover { color: #2b6cb0; }
+  </style>
+</head>
+<body>
+
+  <h1>Delivery Profiles — Interactive Cluster Maps</h1>
+  <p class="subtitle">
+    Folium maps generated from a real logistics dataset (1,397 recipients).
+    Click a map to explore it interactively — zoom, click markers, and toggle route layers.
+  </p>
+
+  <a class="card" href="cluster_map_clustered_kmeans_vw2_vf2_mf1.html">
+    <span class="arrow">&#8599;</span>
+    <h2>KMeans Cluster Map</h2>
+    <p>
+      5 fixed geographic regions. All eligible recipients are assigned to a cluster.
+      Recipients in the same cluster and frequency group share an identical delivery pattern —
+      click any circle to see its assigned profile.
+    </p>
+    <div class="tags">
+      <span class="tag">KMeans · 5 clusters</span>
+      <span class="tag green">var_weight ≤ 2</span>
+      <span class="tag green">var_freq ≤ 2</span>
+      <span class="tag green">min_frequency ≥ 1</span>
+    </div>
+  </a>
+
+  <a class="card" href="cluster_map_clustered_dbscan_vw2_vf2_mf1.html">
+    <span class="arrow">&#8599;</span>
+    <h2>DBSCAN Cluster Map</h2>
+    <p>
+      25 density-based clusters with eps auto-tuned via the k-distance elbow method.
+      Outlier recipients (gray markers) are too sparse to form a dense cluster and
+      receive individual non-clustered patterns.
+    </p>
+    <div class="tags">
+      <span class="tag">DBSCAN · 25 clusters</span>
+      <span class="tag">auto-tuned eps</span>
+      <span class="tag green">var_weight ≤ 2</span>
+      <span class="tag green">var_freq ≤ 2</span>
+      <span class="tag green">min_frequency ≥ 1</span>
+    </div>
+  </a>
+
+  <p class="back">
+    <a href="https://github.com/BushraKiyani/Delivery-Profiles">&#8592; Back to repository</a>
+  </p>
+
+</body>
+</html>

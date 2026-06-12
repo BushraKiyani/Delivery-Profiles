@@ -12,6 +12,95 @@ Built across 10 modular stages: ingestion → geocoding → distance matrix → 
 - Interactive cluster maps (Folium HTML)
 - Weekday demand and freight cost visualizations (PDF)
 
+---
+
+## Table of Contents
+
+- [Project Goal](#project-goal)
+- [Results](#results)
+  - [Key Findings](#key-findings)
+  - [What This Project Measures](#what-this-project-measures)
+- [High-Level Workflow](#high-level-workflow)
+  - [1. Preprocessing](#1-preprocessing)
+  - [2. Geocoding](#2-geocoding)
+  - [3. Distance Matrix](#3-distance-matrix)
+  - [4. Cost Modeling](#4-cost-modeling)
+  - [5. Variability Analysis](#5-variability-analysis)
+  - [6. Pattern Assignment](#6-pattern-assignment)
+  - [7. Profile Application](#7-profile-application)
+  - [8. Post-Cost Recalculation (Optional)](#8-post-cost-recalculation-optional)
+  - [9. Routing (Optional)](#9-routing-optional)
+  - [10. Maps & Visualization (Optional)](#10-maps--visualization-optional)
+- [Algorithms & Optimization](#algorithms--optimization)
+  - [MIP Pattern Assignment](#mip-pattern-assignment)
+  - [Geographic Clustering (KMeans + DBSCAN)](#geographic-clustering-kmeans--dbscan)
+  - [Haversine Distance](#haversine-distance)
+  - [OR-Tools VRP Routing](#or-tools-vrp-routing)
+- [Repository Structure](#repository-structure)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the Pipeline](#running-the-pipeline)
+- [Output Structure](#output-structure)
+  - [Recipient Summary Output Columns](#recipient-summary-output-columns)
+- [Maps](#maps)
+- [GitHub Note](#github-note)
+- [License](#license)
+
+---
+
+## Project Goal
+
+> A sender at a fixed depot location makes repeated deliveries to a set of recipients. Many recipients receive shipments on irregular days with varying weights. The goal is to identify which recipients have stable, predictable demand, assign them a fixed weekly delivery pattern (e.g. deliver every Monday and Thursday), consolidate their shipments onto those days, and then solve a Vehicle Routing Problem to optimize the actual routes.
+
+This reduces peak load on high-demand days, unnecessary trips, and total freight cost.
+
+---
+
+## Results
+
+Example results from a real logistics dataset (1,397 recipients). Raw data is not included in this repository for confidentiality reasons — these are anonymized aggregate outputs.
+
+![Weight distribution before and after profile assignment](results/weight_distribution.png)
+
+*Weight leveling across weekdays: peak day reduced from 26.4% (before profiles) to 23.7% (after profiles), showing that fixing delivery patterns smooths demand across the working week.*
+
+![Freight cost distribution by weekday](results/freight_cost_distribution.png)
+
+*Freight cost impact of the weight-based optimization: since the MIP optimizes weight demand rather than cost directly, cost changes reflect the redistribution of consolidated shipments across weekdays.*
+
+![Pipeline summary dashboard](results/summary_dashboard.png)
+
+*Pipeline summary dashboard: peak reduction, recipient coverage, and truck logistics metrics for the run shown above.*
+
+![KMeans cluster map](results/cluster_map_kmeans.png)
+
+*KMeans clustering with 5 fixed geographic regions. All eligible recipients are assigned to a cluster; recipients in the same cluster and frequency group share an identical delivery pattern.*
+
+[**View live interactive map →**](https://bushrakiyani.github.io/Delivery-Profiles/results/cluster_map_clustered_kmeans_vw2_vf2_mf1.html)
+
+![DBSCAN cluster map](results/cluster_map_dbscan.png)
+
+*DBSCAN clustering with 25 density-based clusters, eps auto-tuned via the k-distance elbow method. Recipients too sparse to form a dense cluster (outliers) are shown in gray and receive individual non-clustered patterns.*
+
+[**View live interactive map →**](https://bushrakiyani.github.io/Delivery-Profiles/results/cluster_map_clustered_dbscan_vw2_vf2_mf1.html)
+
+### Key Findings
+
+Peak day weight share reduced from **26.4% → 23.7%** (−2.7 pp). Friday utilization nearly doubled from **8.3% → 15.4%**, showing that recipients previously skewed toward early-week delivery were redistributed to underused days. DBSCAN produced a more balanced overall distribution than KMeans across all five weekdays, owing to its ability to identify natural geographic clusters of varying density rather than forcing a fixed-count partition.
+
+### What This Project Measures
+
+Three dimensions are evaluated end-to-end:
+
+- **Workload leveling** — Does the maximum daily weight share decrease after profile assignment? The weight distribution charts answer this directly: lower peak, higher off-peak days, and convergence toward the 20% equal-distribution baseline.
+- **Cost change** — Does consolidating shipments change total freight cost? The freight cost comparison chart shows the per-weekday cost distribution before and after profiles. Because the MIP optimizes weight-based demand (not cost directly), cost changes are a secondary effect of consolidation.
+- **Route efficiency** — Do vehicle routes become shorter with fewer, more predictable delivery days? When `routing.enabled: true`, the VRP solver produces `routes.json` with total route duration per weekday; comparing weekday durations before and after profile assignment quantifies the routing benefit.
+
+The comparison plots and routing output together answer these three questions with real numbers from the data.
+
+---
+
 ```mermaid
 graph LR
   A[Raw Shipments CSV] --> B[Preprocessing]
@@ -60,6 +149,8 @@ Filters recipients by:
 - Minimum shipment frequency
 - Weight variability threshold
 - Frequency variability threshold
+
+Variability is measured as the **coefficient of variation**: CV = standard deviation / mean — a dimensionless measure of relative spread. Lower CV means more consistent week-to-week demand. A recipient with CV ≤ `var_weight_max` for weight and CV ≤ `var_frequency_max` for frequency has demand regular enough to be placed on a fixed weekly schedule.
 
 ### 6. Pattern Assignment
 
@@ -378,6 +469,30 @@ outputs/
 ```
 
 Each threshold configuration produces a separate run folder. No outputs are overwritten.
+
+### Recipient Summary Output Columns
+
+`recipient_summary.csv` is written after profile application and contains one row per recipient per scenario. It is the primary per-recipient before/after comparison output.
+
+| Column | Description |
+|--------|-------------|
+| `Recipient_ID` | Unique recipient identifier |
+| `Scenario` | `Profiles Only`, `KMeans Clustered`, or `DBSCAN Clustered` |
+| `Frequency` | Rounded average weekly shipment frequency used by the MIP solver |
+| `Demand` | `round(avg_Weight / AVG_Frequency)` — weight-based demand coefficient fed to the solver |
+| `Pattern` | Assigned pattern index (0-based) within the recipient's frequency group |
+| `Pattern_clear` | Binary Mon–Fri delivery vector, e.g. `[1, 0, 1, 0, 0]` (Monday and Wednesday) |
+| `Cluster` | Cluster ID from KMeans or DBSCAN; `-1` for DBSCAN outliers; blank for non-clustered scenarios |
+| `Original_Days` | Number of distinct delivery days in the raw data before profile assignment |
+| `avg_Weight` | Average shipment weight per delivery (kg), from the variability analysis |
+| `AVG_Frequency` | Average shipment frequency (deliveries per week), from the variability analysis |
+| `Weight_Mon_before` … `Weight_Fri_before` | Average weight delivered on each weekday before profile assignment (kg) |
+| `Weight_Mon_after` … `Weight_Fri_after` | Consolidated weight delivered on each weekday after profile assignment (kg) |
+| `Freight_Cost_before` | Total freight cost (EUR) before profile assignment |
+| `Freight_Cost_after` | Total freight cost (EUR) after profile assignment |
+| `Cost_Change_EUR` | `Freight_Cost_after − Freight_Cost_before` (negative = saving) |
+| `Cost_Change_pct` | Percentage change in freight cost relative to baseline |
+| `Trucks_Needed` | Maximum number of trucks required on any single pattern day (≥ 2 when weight exceeds `max_truck_weight`) |
 
 ---
 
